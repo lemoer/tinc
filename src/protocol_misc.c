@@ -91,11 +91,22 @@ bool send_ping(connection_t *c) {
 	c->status.pinged = true;
 	c->last_ping_time = now;
 
-	return send_request(c, "%d", PING);
+	return send_request(c, "%d %d %d", PING, c->last_ping_time.tv_sec, c->last_ping_time.tv_usec);
 }
 
 bool ping_h(connection_t *c, const char *request) {
-	return send_pong(c);
+	int tv_sec, tv_usec, ret;
+
+	ret = sscanf(request, "%*d %d %d", &tv_sec, &tv_usec);
+	logger(DEBUG_ALWAYS, LOG_ERR, "Got PING from %s (%s) %d", c->name, request, ret);
+	if (ret == -1)
+		return send_pong(c);
+	else if (ret == 2)
+		return send_pong_v2(c, tv_sec, tv_usec);
+}
+
+bool send_pong_v2(connection_t *c, int tv_sec, int tv_usec) {
+	return send_request(c, "%d %d %d", PONG, tv_sec, tv_usec);
 }
 
 bool send_pong(connection_t *c) {
@@ -103,7 +114,17 @@ bool send_pong(connection_t *c) {
 }
 
 bool pong_h(connection_t *c, const char *request) {
+	int current_rtt = 0;
 	c->status.pinged = false;
+
+	current_rtt = ((now.tv_sec - c->last_ping_time.tv_sec) * 1000)
+		+ ((now.tv_usec - c->last_ping_time.tv_usec) / 1000);
+
+	if (c->edge->avg_rtt == 0) {
+		c->edge->avg_rtt = current_rtt;
+	} else {
+		c->edge->avg_rtt = (current_rtt + c->edge->avg_rtt)/2;
+	}
 
 	/* Succesful connection, reset timeout if this is an outgoing connection. */
 
