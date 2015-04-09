@@ -115,15 +115,20 @@ bool send_pong(connection_t *c) {
 
 bool pong_h(connection_t *c, const char *request) {
 	int current_rtt = 0;
+	int tv_sec, tv_usec, ret;
 	c->status.pinged = false;
 
-	current_rtt = ((now.tv_sec - c->last_ping_time.tv_sec) * 1000)
-		+ ((now.tv_usec - c->last_ping_time.tv_usec) / 1000);
+	ret = sscanf(request, "%*d %d %d", &tv_sec, &tv_usec);
 
-	if (c->edge->avg_rtt == 0) {
-		c->edge->avg_rtt = current_rtt;
-	} else {
-		c->edge->avg_rtt = (current_rtt + c->edge->avg_rtt)/2;
+	if (ret == 2) {
+		current_rtt = (((now.tv_sec - tv_sec)*1000) + (now.tv_usec - tv_usec));
+		logger(DEBUG_ALWAYS, LOG_ERR, "Got PONG from %s (%s) %d RTT: %d", c->name, request, ret, current_rtt);
+
+		if (c->edge->avg_rtt == 0) {
+			c->edge->avg_rtt = current_rtt;
+		} else {
+			c->edge->avg_rtt = (current_rtt + c->edge->avg_rtt)/2;
+		}
 	}
 
 	/* Succesful connection, reset timeout if this is an outgoing connection. */
