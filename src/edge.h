@@ -34,6 +34,7 @@ typedef struct edge_t {
 
 	uint32_t options;                       /* options turned on for this edge */
 	int weight;                             /* weight of this edge */
+	int avg_rtt;                            /* average RTT */
 
 	struct connection_t *connection;        /* connection associated with this edge, if available */
 	struct edge_t *reverse;                 /* edge in the opposite direction, if available */
