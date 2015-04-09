@@ -99,10 +99,10 @@ bool ping_h(connection_t *c, const char *request) {
 
 	ret = sscanf(request, "%*d %d %d", &tv_sec, &tv_usec);
 	logger(DEBUG_ALWAYS, LOG_ERR, "Got PING from %s (%s) %d", c->name, request, ret);
-	if (ret == -1)
-		return send_pong(c);
-	else if (ret == 2)
+	if (ret == 2)
 		return send_pong_v2(c, tv_sec, tv_usec);
+	else
+		return send_pong(c);
 }
 
 bool send_pong_v2(connection_t *c, int tv_sec, int tv_usec) {
