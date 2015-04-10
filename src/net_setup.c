@@ -331,7 +331,7 @@ void regenerate_key(void) {
 }
 
 void update_edge_weigth(void) {
-	edge_t *t;
+	edge_t *t, *r = NULL;
 	logger(DEBUG_STATUS, LOG_INFO, "Update edge weight");
 
 	for list_each(connection_t, c, connection_list) {
@@ -339,20 +339,15 @@ void update_edge_weigth(void) {
 				continue;
 
 			if (c->edge->avg_rtt) {
-				/* avg_rtt is in ms */
+
 				t = clone_edge(c->edge);
-
-				t->weight = t->avg_rtt*10;
-				if (t->reverse) {
-					t->reverse->weight = t->avg_rtt*10;
-				}
-
+				send_del_edge(c, c->edge);
 				edge_del(c->edge);
+				/* avg_rtt is in ms */
+				t->weight = t->avg_rtt*10;
 				c->edge = t;
 				edge_add(t);
-
-				send_del_edge(c, c->edge);
-				send_add_edge(c, c->edge);
+				send_add_edge(c, t);
 			}
 		}
 }
