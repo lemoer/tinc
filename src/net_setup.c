@@ -335,7 +335,7 @@ void update_edge_weigth(void) {
 	logger(DEBUG_STATUS, LOG_INFO, "Update edge weight");
 
 	for list_each(connection_t, c, connection_list) {
-			if (c->status.control)
+			if (c->status.control || !c->edge)
 				continue;
 
 			if (c->edge->avg_rtt) {
