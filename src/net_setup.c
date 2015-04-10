@@ -319,7 +319,7 @@ static void keyexpire_handler(void *data) {
 }
 
 static void edgeupdate_handler(void *data) {
-	update_edge_weigth();
+	update_edge_weight();
 	timeout_set(data, &(struct timeval){edgeupdateinterval, rand() % 100000});
 }
 
@@ -330,7 +330,7 @@ void regenerate_key(void) {
 		n->status.validkey_in = false;
 }
 
-void update_edge_weigth(void) {
+void update_edge_weight(void) {
 	edge_t *t, *r = NULL;
 	logger(DEBUG_STATUS, LOG_INFO, "Update edge weight");
 

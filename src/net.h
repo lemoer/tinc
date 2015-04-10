@@ -210,7 +210,7 @@ extern bool read_rsa_public_key(struct connection_t *);
 extern void handle_device_data(void *, int);
 extern void handle_meta_connection_data(struct connection_t *);
 extern void regenerate_key(void);
-extern void update_edge_weigth(void);
+extern void update_edge_weight(void);
 extern void purge(void);
 extern void retry(void);
 extern int reload_configuration(void);
