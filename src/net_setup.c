@@ -339,11 +339,14 @@ void update_edge_weigth(void) {
 
 			if (c->edge->avg_rtt) {
 				/* avg_rtt is in ms */
+				/*
 				c->edge->weight = c->edge->avg_rtt*10;
 				if (c->edge->reverse) {
 					c->edge->reverse->weight = c->edge->avg_rtt*10;
 				}
+				send_del_edge(c, c->edge);
 				send_add_edge(c, c->edge);
+				*/
 			}
 		}
 }
