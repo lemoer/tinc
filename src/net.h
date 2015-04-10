@@ -147,6 +147,7 @@ extern listen_socket_t listen_socket[MAXSOCKETS];
 extern int listen_sockets;
 extern io_t unix_socket;
 extern int keylifetime;
+extern int edgeupdateinterval;
 extern int udp_rcvbuf;
 extern int udp_sndbuf;
 extern int max_connection_burst;

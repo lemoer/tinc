@@ -311,10 +311,16 @@ static bool read_rsa_private_key(void) {
 #endif
 
 static timeout_t keyexpire_timeout;
+static timeout_t edgeupdate_timeout;
 
 static void keyexpire_handler(void *data) {
 	regenerate_key();
 	timeout_set(data, &(struct timeval){keylifetime, rand() % 100000});
+}
+
+static void edgeupdate_handler(void *data) {
+	update_edge_weigth();
+	timeout_set(data, &(struct timeval){edgeupdateinterval, rand() % 100000});
 }
 
 void regenerate_key(void) {
@@ -322,6 +328,26 @@ void regenerate_key(void) {
 	send_key_changed();
 	for splay_each(node_t, n, node_tree)
 		n->status.validkey_in = false;
+}
+
+void update_edge_weigth(void) {
+	logger(DEBUG_ALWAYS, LOG_INFO, "Update edge weight");
+	for splay_each(node_t, n, node_tree) {
+			for splay_each(edge_t, e, n->edge_tree) {
+					char *address = sockaddr2hostname(&e->address);
+					char *local_address = sockaddr2hostname(&e->local_address);
+					if (e->avg_rtt) {
+						logger(DEBUG_ALWAYS, LOG_INFO, "Update edge: %s -> %s (w: %d -> %d)", e->from->name, e->to->name, e->weight, e->avg_rtt);
+						/* avg_rtt is in ms */
+						e->weight = e->avg_rtt*10;
+						edge_add(e);
+
+						for list_each(connection_t, c, connection_list) {
+								send_add_edge(c, e);
+							}
+					}
+				}
+		}
 }
 
 /*
@@ -624,6 +650,9 @@ bool setup_myself_reloadable(void) {
 	if(!get_config_int(lookup_config(config_tree, "KeyExpire"), &keylifetime))
 		keylifetime = 3600;
 
+	if(!get_config_int(lookup_config(config_tree, "EdgeUpdateInterval"), &edgeupdateinterval))
+		edgeupdateinterval = 0;
+
 	config_t *cfg = lookup_config(config_tree, "AutoConnect");
 	if(cfg) {
 		if(!get_config_bool(cfg, &autoconnect)) {
@@ -893,6 +922,9 @@ static bool setup_myself(void) {
 	free(cipher);
 
 	timeout_add(&keyexpire_timeout, keyexpire_handler, &keyexpire_timeout, &(struct timeval){keylifetime, rand() % 100000});
+
+	if (edgeupdateinterval)
+		timeout_add(&edgeupdate_timeout, edgeupdate_handler, &edgeupdate_timeout, &(struct timeval){edgeupdateinterval, rand() % 100000});
 
 	/* Check if we want to use message authentication codes... */
 
