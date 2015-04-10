@@ -142,6 +142,11 @@ bool pong_h(connection_t *c, const char *request) {
 	else
 		c->edge->avg_rtt = (current_rtt + c->edge->avg_rtt)/2;
 
+
+	if (c->edge->reverse) {
+		c->edge->reverse->avg_rtt = c->edge->avg_rtt;
+	}
+
 	/* Succesful connection, reset timeout if this is an outgoing connection. */
 
 	if(c->outgoing) {

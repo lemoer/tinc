@@ -331,24 +331,23 @@ void regenerate_key(void) {
 }
 
 void update_edge_weigth(void) {
-	logger(DEBUG_ALWAYS, LOG_INFO, "Update edge weight");
-	for splay_each(node_t, n, node_tree) {
-			for splay_each(edge_t, e, n->edge_tree) {
-					char *address = sockaddr2hostname(&e->address);
-					char *local_address = sockaddr2hostname(&e->local_address);
-					if (e->avg_rtt) {
-						logger(DEBUG_ALWAYS, LOG_INFO, "Update edge: %s -> %s (w: %d -> %d)", e->from->name, e->to->name, e->weight, e->avg_rtt);
-						/* avg_rtt is in ms */
-						e->weight = e->avg_rtt*10;
-						edge_add(e);
+	logger(DEBUG_STATUS, LOG_INFO, "Update edge weight");
 
-						for list_each(connection_t, c, connection_list) {
-								send_add_edge(c, e);
-							}
-					}
+	for list_each(connection_t, c, connection_list) {
+			if (c->status.control)
+				continue;
+
+			if (c->edge->avg_rtt) {
+				/* avg_rtt is in ms */
+				c->edge->weight = c->edge->avg_rtt*10;
+				if (c->edge->reverse) {
+					c->edge->reverse->weight = c->edge->avg_rtt*10;
 				}
+				send_add_edge(c, c->edge);
+			}
 		}
 }
+
 
 /*
   Read Subnets from all host config files
