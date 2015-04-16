@@ -178,6 +178,7 @@ static bool req_key_ext_h(connection_t *c, const char *request, node_t *from, in
 			from->last_req_key = now.tv_sec;
 			sptps_start(&from->sptps, from, false, true, myself->connection->ecdsa, from->ecdsa, label, sizeof label, send_sptps_data, receive_sptps_record);
 			sptps_receive_data(&from->sptps, buf, len);
+			send_mtu_info(myself, from, MTU);
 			return true;
 		}
 
@@ -194,6 +195,7 @@ static bool req_key_ext_h(connection_t *c, const char *request, node_t *from, in
 				return true;
 			}
 			sptps_receive_data(&from->sptps, buf, len);
+			send_mtu_info(myself, from, MTU);
 			return true;
 		}
 
@@ -235,6 +237,13 @@ bool req_key_h(connection_t *c, const char *request) {
 			   "REQ_KEY", c->name, c->hostname, to_name);
 		return true;
 	}
+
+	/* If this is a SPTPS packet, see if sending UDP info helps.
+	   Note that we only do this if we're the destination or the static relay;
+	   otherwise every hop would initiate its own UDP info message, resulting in elevated chatter. */
+
+	if(experimental && (reqno == REQ_KEY || reqno == REQ_SPTPS) && to->via == myself)
+		send_udp_info(myself, from);
 
 	/* Check if this key request is for us */
 
@@ -407,6 +416,8 @@ bool ans_key_h(connection_t *c, const char *request) {
 				update_node_udp(from, &sa);
 			}
 		}
+
+		send_mtu_info(myself, from, MTU);
 
 		return true;
 	}

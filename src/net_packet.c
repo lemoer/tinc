@@ -65,7 +65,7 @@ static char lzo_wrkmem[LZO1X_999_MEM_COMPRESS > LZO1X_1_MEM_COMPRESS ? LZO1X_999
 
 static void send_udppacket(node_t *, vpn_packet_t *);
 
-unsigned replaywin = 16;
+unsigned replaywin = 32;
 bool localdiscovery = true;
 bool udp_discovery = true;
 int udp_discovery_keepalive_interval = 10;
@@ -688,9 +688,7 @@ static bool send_sptps_data_priv(node_t *to, node_t *from, int type, const void 
 	bool relay_supported = (relay->options >> 24) >= 4;
 	bool tcponly = (myself->options | relay->options) & OPTION_TCPONLY;
 
-	/* Send it via TCP if it is a handshake packet, TCPOnly is in use, this is a relay packet that the other node cannot understand, or this packet is larger than the MTU.
-	   TODO: When relaying, the original sender does not know the end-to-end PMTU (it only knows the PMTU of the first hop).
-	         This can lead to scenarios where large packets are sent over UDP to relay, but then relay has no choice but fall back to TCP. */
+	/* Send it via TCP if it is a handshake packet, TCPOnly is in use, this is a relay packet that the other node cannot understand, or this packet is larger than the MTU. */
 
 	if(type == SPTPS_HANDSHAKE || tcponly || (!direct && !relay_supported) || (type != PKT_PROBE && (len - SPTPS_DATAGRAM_OVERHEAD) > relay->minmtu)) {
 		char buf[len * 4 / 3 + 5];
@@ -1138,7 +1136,7 @@ static void try_tx_sptps(node_t *n, bool mtu) {
 	/* If we do have a static relay, try everything with that one instead. */
 
 	if(via != n)
-		try_tx_sptps(via, mtu);
+		return try_tx_sptps(via, mtu);
 
 	/* Otherwise, try to establish UDP connectivity. */
 
@@ -1395,6 +1393,17 @@ skip_harder:
 			return;
 		}
 
+		/* The packet is supposed to come from the originator or its static relay
+		   (i.e. with no dynamic relays in between).
+		   If it did not, "help" the static relay by sending it UDP info.
+		   Note that we only do this if we're the destination or the static relay;
+		   otherwise every hop would initiate its own UDP info message, resulting in elevated chatter. */
+
+		if(n != from->via && to->via == myself)
+			send_udp_info(myself, from);
+
+		/* If we're not the final recipient, relay the packet. */
+
 		if(to != myself) {
 			send_sptps_data_priv(to, n, 0, DATA(&pkt), pkt.len - 2 * sizeof(node_id_t));
 			try_tx_sptps(n, true);
@@ -1412,6 +1421,12 @@ skip_harder:
 	n->sock = ls - listen_socket;
 	if(direct && sockaddrcmp(&addr, &n->address))
 		update_node_udp(n, &addr);
+
+	/* If the packet went through a relay, help the sender find the appropriate MTU
+	   through the relay path. */
+
+	if(!direct)
+		send_mtu_info(myself, n, MTU);
 }
 
 void handle_device_data(void *data, int flags) {

@@ -547,6 +547,9 @@ bool setup_myself_reloadable(void) {
 	get_config_int(lookup_config(config_tree, "UDPDiscoveryInterval"), &udp_discovery_interval);
 	get_config_int(lookup_config(config_tree, "UDPDiscoveryTimeout"), &udp_discovery_timeout);
 
+	get_config_int(lookup_config(config_tree, "MTUInfoInterval"), &mtu_info_interval);
+	get_config_int(lookup_config(config_tree, "UDPInfoInterval"), &udp_info_interval);
+
 	get_config_bool(lookup_config(config_tree, "DirectOnly"), &directonly);
 	get_config_bool(lookup_config(config_tree, "LocalDiscovery"), &localdiscovery);
 
@@ -696,7 +699,7 @@ static bool add_listen_address(char *address, bool bindto) {
 	hint.ai_protocol = IPPROTO_TCP;
 	hint.ai_flags = AI_PASSIVE;
 
-#ifdef HAVE_DECL_RES_INIT
+#if HAVE_DECL_RES_INIT
 	res_init();
 #endif
 	int err = getaddrinfo(address && *address ? address : NULL, port, &hint, &ai);
@@ -886,14 +889,14 @@ static bool setup_myself(void) {
 	}
 
 	if(get_config_int(lookup_config(config_tree, "UDPRcvBuf"), &udp_rcvbuf)) {
-		if(udp_rcvbuf <= 0) {
+		if(udp_rcvbuf < 0) {
 			logger(DEBUG_ALWAYS, LOG_ERR, "UDPRcvBuf cannot be negative!");
 			return false;
 		}
 	}
 
 	if(get_config_int(lookup_config(config_tree, "UDPSndBuf"), &udp_sndbuf)) {
-		if(udp_sndbuf <= 0) {
+		if(udp_sndbuf < 0) {
 			logger(DEBUG_ALWAYS, LOG_ERR, "UDPSndBuf cannot be negative!");
 			return false;
 		}
