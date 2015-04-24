@@ -1,0 +1,50 @@
+#!/bin/sh
+
+# Scenario:
+# Mixed tinc-version nodes on network, node bar gets upgrade to >= 1.1
+# 
+# foo connects to node bar version >= 1.1
+# ed25519 exchange starts
+# bar drops connection from foo: Peer foo (::1 port 48413) tries to roll back protocol version to 17.1
+# work around is to remove Ed25519PublicKey from foo on bar
+
+. ./testlib.sh
+
+# Initialize and test one node
+
+$tinc $c1 init foo
+$tinc $c1 set DeviceType dummy
+$tinc $c1 set Address localhost
+$tinc $c1 set Port 3399
+$tinc $c1 add ConnectTo bar
+
+$tinc $c2 init bar
+$tinc $c2 set DeviceType dummy
+$tinc $c2 set Address localhost
+$tinc $c2 set Port 4499
+
+# Cleanup ed25519_key.priv
+#rm $d1/ed25519_key.priv
+#rm $d2/ed25519_key.priv
+sed -i 's/Ed25519PublicKey/#Ed25519PublicKey/' $d2/hosts/bar
+
+# Uncomment this to pass the test
+#sed -i 's/Ed25519PublicKey/#Ed25519PublicKey/' $d1/hosts/foo
+
+$tinc $c2 export | $tinc $c1 import
+$tinc $c1 export | $tinc $c2 import
+
+
+$tinc $c2 start $r2
+sleep 1
+$tinc $c1 start $r1
+sleep 1
+# the test passes sometimes if we check while tinc is connecting
+test `$tinc $c1 dump connections | wc -l` = 2
+sleep 0.5
+# 2nd test in the case that 1st one passed
+test `$tinc $c1 dump connections | wc -l` = 2
+
+sleep 1
+$tinc $c1 stop
+$tinc $c2 stop
