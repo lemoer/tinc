@@ -157,6 +157,7 @@ bool add_edge_h(connection_t *c, const char *request) {
 	e->local_address = local_address;
 	e->options = options;
 	e->weight = weight;
+	e->avg_rtt = weight/10;
 	edge_add(e);
 
 	/* Tell the rest about the new edge */
