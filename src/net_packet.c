@@ -429,6 +429,51 @@ void receive_tcppacket(connection_t *c, const char *buffer, int len) {
 	receive_packet(c->node, &outpkt);
 }
 
+bool receive_tcppacket_sptps(connection_t *c, const char *data, int len) {
+	if (len < sizeof(node_id_t) + sizeof(node_id_t)) {
+		logger(DEBUG_ALWAYS, LOG_ERR, "Got too short TCP SPTPS packet from %s (%s)", c->name, c->hostname);
+		return false;
+	}
+
+	node_t *to = lookup_node_id((node_id_t *)data);
+	data += sizeof(node_id_t); len -= sizeof(node_id_t);
+	if(!to) {
+		logger(DEBUG_PROTOCOL, LOG_ERR, "Got TCP SPTPS packet from %s (%s) with unknown destination ID", c->name, c->hostname);
+		return true;
+	}
+
+	node_t *from = lookup_node_id((node_id_t *)data);
+	data += sizeof(node_id_t); len -= sizeof(node_id_t);
+	if(!from) {
+		logger(DEBUG_PROTOCOL, LOG_ERR, "Got TCP SPTPS packet from %s (%s) with unknown source ID", c->name, c->hostname);
+		return true;
+	}
+
+	/* Help the sender reach us over UDP.
+	   Note that we only do this if we're the destination or the static relay;
+	   otherwise every hop would initiate its own UDP info message, resulting in elevated chatter. */
+	if(to->via == myself)
+		send_udp_info(myself, from);
+
+	/* If we're not the final recipient, relay the packet. */
+
+	if(to != myself) {
+		send_sptps_data(to, from, 0, data, len);
+		try_tx(to, true);
+		return true;
+	}
+
+	/* The packet is for us */
+
+	if(!from->status.validkey) {
+		logger(DEBUG_PROTOCOL, LOG_ERR, "Got SPTPS packet from %s (%s) but we don't have a valid key yet", from->name, from->hostname);
+		return true;
+	}
+	sptps_receive_data(&from->sptps, data, len);
+	send_mtu_info(myself, from, MTU);
+	return true;
+}
+
 static void send_sptps_packet(node_t *n, vpn_packet_t *origpkt) {
 	if(!n->status.validkey && !n->connection)
 		return;
@@ -682,7 +727,7 @@ end:
 #endif
 }
 
-static bool send_sptps_data_priv(node_t *to, node_t *from, int type, const void *data, size_t len) {
+bool send_sptps_data(node_t *to, node_t *from, int type, const void *data, size_t len) {
 	node_t *relay = (to->via != myself && (type == PKT_PROBE || (len - SPTPS_DATAGRAM_OVERHEAD) <= to->via->minmtu)) ? to->via : to->nexthop;
 	bool direct = from == myself && to == relay;
 	bool relay_supported = (relay->options >> 24) >= 4;
@@ -691,6 +736,15 @@ static bool send_sptps_data_priv(node_t *to, node_t *from, int type, const void 
 	/* Send it via TCP if it is a handshake packet, TCPOnly is in use, this is a relay packet that the other node cannot understand, or this packet is larger than the MTU. */
 
 	if(type == SPTPS_HANDSHAKE || tcponly || (!direct && !relay_supported) || (type != PKT_PROBE && (len - SPTPS_DATAGRAM_OVERHEAD) > relay->minmtu)) {
+		if((from != myself || to->status.validkey) && (to->nexthop->connection->options >> 24) >= 7) {
+			char buf[len + sizeof to->id + sizeof from->id]; char* buf_ptr = buf;
+			memcpy(buf_ptr, &to->id, sizeof to->id); buf_ptr += sizeof to->id;
+			memcpy(buf_ptr, &from->id, sizeof from->id); buf_ptr += sizeof from->id;
+			memcpy(buf_ptr, data, len); buf_ptr += len;
+			logger(DEBUG_TRAFFIC, LOG_INFO, "Sending packet from %s (%s) to %s (%s) via %s (%s) (TCP)", from->name, from->hostname, to->name, to->hostname, to->nexthop->name, to->nexthop->hostname);
+			return send_sptps_tcppacket(to->nexthop->connection, buf, sizeof buf);
+		}
+
 		char buf[len * 4 / 3 + 5];
 		b64encode(data, buf, len);
 		/* If no valid key is known yet, send the packets using ANS_KEY requests,
@@ -699,7 +753,7 @@ static bool send_sptps_data_priv(node_t *to, node_t *from, int type, const void 
 			to->incompression = myself->incompression;
 			return send_request(to->nexthop->connection, "%d %s %s %s -1 -1 -1 %d", ANS_KEY, from->name, to->name, buf, to->incompression);
 		} else {
-			return send_request(to->nexthop->connection, "%d %s %s %d %s", REQ_KEY, from->name, to->name, REQ_SPTPS, buf);
+			return send_request(to->nexthop->connection, "%d %s %s %d %s", REQ_KEY, from->name, to->name, SPTPS_PACKET, buf);
 		}
 	}
 
@@ -726,7 +780,7 @@ static bool send_sptps_data_priv(node_t *to, node_t *from, int type, const void 
 		choose_local_address(relay, &sa, &sock);
 	if(!sa)
 		choose_udp_address(relay, &sa, &sock);
-	logger(DEBUG_TRAFFIC, LOG_INFO, "Sending packet from %s (%s) to %s (%s) via %s (%s)", from->name, from->hostname, to->name, to->hostname, relay->name, relay->hostname);
+	logger(DEBUG_TRAFFIC, LOG_INFO, "Sending packet from %s (%s) to %s (%s) via %s (%s) (UDP)", from->name, from->hostname, to->name, to->hostname, relay->name, relay->hostname);
 	if(sendto(listen_socket[sock].udp.fd, buf, buf_ptr - buf, 0, &sa->sa, SALEN(sa->sa)) < 0 && !sockwouldblock(sockerrno)) {
 		if(sockmsgsize(sockerrno)) {
 			// Compensate for SPTPS overhead
@@ -743,10 +797,6 @@ static bool send_sptps_data_priv(node_t *to, node_t *from, int type, const void 
 	}
 
 	return true;
-}
-
-bool send_sptps_data(void *handle, uint8_t type, const void *data, size_t len) {
-	return send_sptps_data_priv(handle, myself, type, data, len);
 }
 
 bool receive_sptps_record(void *handle, uint8_t type, const void *data, uint16_t len) {
@@ -1405,8 +1455,8 @@ skip_harder:
 		/* If we're not the final recipient, relay the packet. */
 
 		if(to != myself) {
-			send_sptps_data_priv(to, n, 0, DATA(&pkt), pkt.len - 2 * sizeof(node_id_t));
-			try_tx_sptps(n, true);
+			send_sptps_data(to, from, 0, DATA(&pkt), pkt.len - 2 * sizeof(node_id_t));
+			try_tx_sptps(to, true);
 			return;
 		}
 	} else {
