@@ -61,9 +61,9 @@ bool add_edge_h(connection_t *c, const char *request) {
 	char to_name[MAX_STRING_SIZE];
 	char to_address[MAX_STRING_SIZE];
 	char to_port[MAX_STRING_SIZE];
-	char address_local[MAX_STRING_SIZE] = "unknown";
-	char port_local[MAX_STRING_SIZE] = "unknown";
-	sockaddr_t address, local_address;
+	char address_local[MAX_STRING_SIZE];
+	char port_local[MAX_STRING_SIZE];
+	sockaddr_t address, local_address = {{0}};
 	uint32_t options;
 	int weight;
 
@@ -117,14 +117,15 @@ bool add_edge_h(connection_t *c, const char *request) {
 	/* Convert addresses */
 
 	address = str2sockaddr(to_address, to_port);
-	local_address = str2sockaddr(address_local, port_local);
+	if(parameter_count >= 8)
+		local_address = str2sockaddr(address_local, port_local);
 
 	/* Check if edge already exists */
 
 	e = lookup_edge(from, to);
 
 	if(e) {
-		if(e->weight != weight || e->options != options || sockaddrcmp(&e->address, &address) || sockaddrcmp(&e->local_address, &local_address)) {
+		if(e->weight != weight || e->options != options || sockaddrcmp(&e->address, &address)) {
 			if(from == myself) {
 				logger(DEBUG_PROTOCOL, LOG_WARNING, "Got %s from %s (%s) for ourself which does not match existing entry",
 						   "ADD_EDGE", c->name, c->hostname);
@@ -135,6 +136,28 @@ bool add_edge_h(connection_t *c, const char *request) {
 						   "ADD_EDGE", c->name, c->hostname);
 				edge_del(e);
 				graph();
+			}
+		} else if(sockaddrcmp(&e->local_address, &local_address)) {
+			if(from == myself) {
+				if(e->local_address.sa.sa_family && local_address.sa.sa_family) {
+					// Someone has the wrong local address for ourself. Correct then.
+					logger(DEBUG_PROTOCOL, LOG_WARNING, "Got %s from %s (%s) for ourself which does not match existing entry",
+							   "ADD_EDGE", c->name, c->hostname);
+					send_add_edge(c, e);
+					return true;
+				}
+				// Otherwise, just ignore it.
+				return true;
+			} else if(local_address.sa.sa_family) {
+				// We learned a new local address for this edge.
+				sockaddrfree(&e->local_address);
+				e->local_address = local_address;
+
+				// Tell others about it.
+				if(!tunnelserver)
+					forward_request(c, request);
+
+				return true;
 			}
 		} else
 			return true;
