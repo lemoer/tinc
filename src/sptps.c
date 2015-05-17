@@ -21,6 +21,7 @@
 #include "system.h"
 
 #include "chacha-poly1305/chacha-poly1305.h"
+#include "connection.h"
 #include "crypto.h"
 #include "ecdh.h"
 #include "ecdsa.h"
@@ -131,10 +132,10 @@ bool sptps_send_record(sptps_t *s, uint8_t type, const void *data, uint16_t len)
 	// Sanity checks: application cannot send data before handshake is finished,
 	// and only record types 0..127 are allowed.
 	if(!s->outstate)
-		return error(s, EINVAL, "Handshake phase not finished yet");
+		return error(s, EINVAL, "Handshake phase with %s not finished yet", ((connection_t *)s->handle)->name);
 
 	if(type >= SPTPS_HANDSHAKE)
-		return error(s, EINVAL, "Invalid application record type");
+		return error(s, EINVAL, "Invalid application record type from %s",	((connection_t *)s->handle)->name);
 
 	return send_record_priv(s, type, data, len);
 }
@@ -179,7 +180,7 @@ static bool send_sig(sptps_t *s) {
 
 	// Sign the result.
 	if(!ecdsa_sign(s->mykey, msg, sizeof msg, sig))
-		return error(s, EINVAL, "Failed to sign SIG record");
+		return error(s, EINVAL, "Failed to sign SIG record for %s", ((connection_t *)s->handle)->name);
 
 	// Send the SIG exchange record.
 	return send_record_priv(s, SPTPS_HANDSHAKE, sig, sizeof sig);
@@ -192,7 +193,7 @@ static bool generate_key_material(sptps_t *s, const char *shared, size_t len) {
 		s->incipher = chacha_poly1305_init();
 		s->outcipher = chacha_poly1305_init();
 		if(!s->incipher || !s->outcipher)
-			return error(s, EINVAL, "Failed to open cipher");
+			return error(s, EINVAL, "Failed to open cipher for %s", ((connection_t *)s->handle)->name);
 	}
 
 	// Allocate memory for key material
@@ -229,14 +230,14 @@ static bool send_ack(sptps_t *s) {
 // Receive an ACKnowledgement record.
 static bool receive_ack(sptps_t *s, const char *data, uint16_t len) {
 	if(len)
-		return error(s, EIO, "Invalid ACK record length");
+		return error(s, EIO, "Invalid ACK record length from %s", ((connection_t *)s->handle)->name);
 
 	if(s->initiator) {
 		if(!chacha_poly1305_set_key(s->incipher, s->key))
-			return error(s, EINVAL, "Failed to set counter");
+			return error(s, EINVAL, "Failed to set counter for %s", ((connection_t *)s->handle)->name);
 	} else {
 		if(!chacha_poly1305_set_key(s->incipher, s->key + CHACHA_POLY1305_KEYLEN))
-			return error(s, EINVAL, "Failed to set counter");
+			return error(s, EINVAL, "Failed to set counter for %s", ((connection_t *)s->handle)->name);
 	}
 
 	free(s->key);
@@ -250,13 +251,13 @@ static bool receive_ack(sptps_t *s, const char *data, uint16_t len) {
 static bool receive_kex(sptps_t *s, const char *data, uint16_t len) {
 	// Verify length of the HELLO record
 	if(len != 1 + 32 + ECDH_SIZE)
-		return error(s, EIO, "Invalid KEX record length");
+		return error(s, EIO, "Invalid KEX record length for %s", ((connection_t *)s->handle)->name);
 
 	// Ignore version number for now.
 
 	// Make a copy of the KEX message, send_sig() and receive_sig() need it
 	if(s->hiskex)
-		return error(s, EINVAL, "Received a second KEX message before first has been processed");
+		return error(s, EINVAL, "Received a second KEX message before first has been processed from %s", ((connection_t *)s->handle)->name);
 	s->hiskex = realloc(s->hiskex, len);
 	if(!s->hiskex)
 		return error(s, errno, strerror(errno));
@@ -322,7 +323,7 @@ static bool receive_sig(sptps_t *s, const char *data, uint16_t len) {
 // Force another Key EXchange (for testing purposes).
 bool sptps_force_kex(sptps_t *s) {
 	if(!s->outstate || s->state != SPTPS_SECONDARY_KEX)
-		return error(s, EINVAL, "Cannot force KEX in current state");
+		return error(s, EINVAL, "Cannot force KEX in current state with %s", ((connection_t *)s->handle)->name);
 
 	s->state = SPTPS_KEX;
 	return send_kex(s);
@@ -330,6 +331,7 @@ bool sptps_force_kex(sptps_t *s) {
 
 // Receive a handshake record.
 static bool receive_handshake(sptps_t *s, const char *data, uint16_t len) {
+	logger(DEBUG_ALWAYS, LOG_NOTICE, "receive_handshake(%s): current state: %d request", ((connection_t *)s->handle)->name, s->state);
 	// Only a few states to deal with handshaking.
 	switch(s->state) {
 		case SPTPS_SECONDARY_KEX:
@@ -384,10 +386,10 @@ static bool sptps_check_seqno(sptps_t *s, uint32_t seqno, bool update_state) {
 				if (update_state)
 					s->farfuture++;
 				if(farfuture)
-					return error(s, EIO, "Packet is %d seqs in the future, dropped (%u)\n", seqno - s->inseqno, s->farfuture);
+					return error(s, EIO, "Packet from %s is %d seqs in the future, dropped (%u)\n", ((connection_t *)s->handle)->name, seqno - s->inseqno, s->farfuture);
 
 				// Unless we have seen lots of them, in which case we consider the others lost.
-				warning(s, "Lost %d packets\n", seqno - s->inseqno);
+				warning(s, "Lost %d packets from %s\n", seqno - s->inseqno, ((connection_t *)s->handle)->name);
 				if (update_state) {
 					// Mark all packets in the replay window as being late.
 					memset(s->late, 255, s->replaywin);
@@ -395,7 +397,7 @@ static bool sptps_check_seqno(sptps_t *s, uint32_t seqno, bool update_state) {
 			} else if (seqno < s->inseqno) {
 				// If the sequence number is farther in the past than the bitmap goes, or if the packet was already received, drop it.
 				if((s->inseqno >= s->replaywin * 8 && seqno < s->inseqno - s->replaywin * 8) || !(s->late[(seqno / 8) % s->replaywin] & (1 << seqno % 8)))
-					return error(s, EIO, "Received late or replayed packet, seqno %d, last received %d\n", seqno, s->inseqno);
+					return error(s, EIO, "Received late or replayed packet from %s, seqno %d, last received %d\n", ((connection_t *)s->handle)->name, seqno, s->inseqno);
 			} else if (update_state) {
 				// We missed some packets. Mark them in the bitmap as being late.
 				for(int i = s->inseqno; i < seqno; i++)
@@ -442,7 +444,7 @@ bool sptps_verify_datagram(sptps_t *s, const void *data, size_t len) {
 // Receive incoming data, datagram version.
 static bool sptps_receive_data_datagram(sptps_t *s, const char *data, size_t len) {
 	if(len < (s->instate ? 21 : 5))
-		return error(s, EIO, "Received short packet");
+		return error(s, EIO, "Received short packet from %s", ((connection_t *)s->handle)->name);
 
 	uint32_t seqno;
 	memcpy(&seqno, data, 4);
@@ -450,12 +452,11 @@ static bool sptps_receive_data_datagram(sptps_t *s, const char *data, size_t len
 
 	if(!s->instate) {
 		if(seqno != s->inseqno)
-			return error(s, EIO, "Invalid packet seqno: %d != %d", seqno, s->inseqno);
+			return error(s, EIO, "Invalid packet seqno: %d != %d from", seqno, s->inseqno, ((connection_t *)s->handle)->name);
 
 		s->inseqno = seqno + 1;
 
 		uint8_t type = data[4];
-
 		if(type != SPTPS_HANDSHAKE)
 			return error(s, EIO, "Application record received before handshake finished");
 
