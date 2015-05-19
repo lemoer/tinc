@@ -283,9 +283,8 @@ static bool receive_udppacket(node_t *n, vpn_packet_t *inpkt) {
 			}
 			return false;
 		}
-		inpkt->offset += 2 * sizeof(node_id_t);
 		n->status.udppacket = true;
-		bool result = sptps_receive_data(&n->sptps, DATA(inpkt), inpkt->len - 2 * sizeof(node_id_t));
+		bool result = sptps_receive_data(&n->sptps, DATA(inpkt), inpkt->len);
 		n->status.udppacket = false;
 
 		if(!result) {
@@ -1192,15 +1191,13 @@ static void try_tx_sptps(node_t *n, bool mtu) {
 
 	node_t *via = (n->via == myself) ? n->nexthop : n->via;
 
-	/* If the static relay doesn't support SPTPS, everything goes via TCP anyway. */
+	/* If we do have a static relay, try everything with that one instead, if it supports relaying. */
 
-	if((via->options >> 24) < 4)
-		return;
-
-	/* If we do have a static relay, try everything with that one instead. */
-
-	if(via != n)
+	if(via != n) {
+		if((via->options >> 24) < 4)
+			return;
 		return try_tx_sptps(via, mtu);
+	}
 
 	/* Otherwise, try to establish UDP connectivity. */
 
@@ -1351,7 +1348,7 @@ static node_t *try_harder(const sockaddr_t *from, const vpn_packet_t *pkt) {
 		if(!n->status.reachable || n == myself)
 			continue;
 
-		if((n->status.sptps && !n->sptps.instate) || !n->status.validkey_in)
+		if(!n->status.validkey_in && !(n->status.sptps && n->sptps.instate))
 			continue;
 
 		bool soft = false;
@@ -1441,10 +1438,16 @@ skip_harder:
 		return;
 	}
 
-	if(n->status.sptps) {
-		pkt.offset = 2 * sizeof(node_id_t);
+	pkt.offset = 0;
 
-		if(!memcmp(DSTID(&pkt), &nullid, sizeof nullid)) {
+	if(n->status.sptps) {
+		bool relay_enabled = (n->options >> 24) >= 4;
+		if (relay_enabled) {
+			pkt.offset = 2 * sizeof(node_id_t);
+			pkt.len -= pkt.offset;
+		}
+
+		if(!memcmp(DSTID(&pkt), &nullid, sizeof nullid) || !relay_enabled) {
 			direct = true;
 			from = n;
 			to = myself;
@@ -1469,7 +1472,7 @@ skip_harder:
 		/* If we're not the final recipient, relay the packet. */
 
 		if(to != myself) {
-			send_sptps_data(to, from, 0, DATA(&pkt), pkt.len - 2 * sizeof(node_id_t));
+			send_sptps_data(to, from, 0, DATA(&pkt), pkt.len);
 			try_tx_sptps(to, true);
 			return;
 		}
@@ -1478,7 +1481,6 @@ skip_harder:
 		from = n;
 	}
 
-	pkt.offset = 0;
 	if(!receive_udppacket(from, &pkt))
 		return;
 
