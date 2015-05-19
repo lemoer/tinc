@@ -98,7 +98,7 @@ bool send_ping(connection_t *c) {
 	c->status.pinged = true;
 	c->last_ping_time = now;
 
-	return send_request(c, "%d %d %d", PING, c->last_ping_time.tv_sec, c->last_ping_time.tv_usec);
+	return send_request(c, "%d %ld %ld", PING, c->last_ping_time.tv_sec, c->last_ping_time.tv_usec);
 }
 
 bool ping_h(connection_t *c, const char *request) {
@@ -204,7 +204,7 @@ bool send_sptps_tcppacket(connection_t *c, const char* packet, int len) {
 	if(2.0 * c->outbuf.len / (float)maxoutbufsize - 1 > (float)rand()/(float)RAND_MAX)
 		return true;
 
-	if(!send_request(c, "%d %hd", SPTPS_PACKET, len))
+	if(!send_request(c, "%d %d", SPTPS_PACKET, len))
 		return false;
 
 	send_meta_raw(c, packet, len);
