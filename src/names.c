@@ -1,7 +1,7 @@
 /*
     names.c -- generate commonly used (file)names
     Copyright (C) 1998-2005 Ivo Timmermans
-                  2000-2013 Guus Sliepen <guus@tinc-vpn.org>
+                  2000-2015 Guus Sliepen <guus@tinc-vpn.org>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ char *program_name = NULL;
 /*
   Set all files and paths according to netname
 */
-void make_names(void) {
+void make_names(bool daemon) {
 #ifdef HAVE_MINGW
 	HKEY key;
 	char installdir[1024] = "";
@@ -85,11 +85,36 @@ void make_names(void) {
 	if(!pidfilename)
 		xasprintf(&pidfilename, "%s" SLASH "pid", confbase);
 #else
-	if(!logfilename)
-		xasprintf(&logfilename, LOCALSTATEDIR SLASH "log" SLASH "%s.log", identname);
+	bool fallback = false;
+	if(daemon) {
+		if(access(LOCALSTATEDIR, R_OK | W_OK | X_OK))
+			fallback = true;
+	} else {
+		char fname[PATH_MAX];
+		snprintf(fname, sizeof fname, LOCALSTATEDIR SLASH "run" SLASH "%s.pid", identname);
+		if(access(fname, R_OK)) {
+			snprintf(fname, sizeof fname, "%s" SLASH "pid", confbase);
+			if(!access(fname, R_OK))
+				fallback = true;
+		}
+	}
 
-	if(!pidfilename)
-		xasprintf(&pidfilename, LOCALSTATEDIR SLASH "run" SLASH "%s.pid", identname);
+	if(!fallback) {
+		if(!logfilename)
+			xasprintf(&logfilename, LOCALSTATEDIR SLASH "log" SLASH "%s.log", identname);
+
+		if(!pidfilename)
+			xasprintf(&pidfilename, LOCALSTATEDIR SLASH "run" SLASH "%s.pid", identname);
+	} else {
+		if(!logfilename)
+			xasprintf(&logfilename, "%s" SLASH "log", confbase);
+
+		if(!pidfilename) {
+			if(daemon)
+				logger(DEBUG_ALWAYS, LOG_WARNING, "Could not access " LOCALSTATEDIR SLASH " (%s), storing pid and socket files in %s" SLASH, strerror(errno), confbase);
+			xasprintf(&pidfilename, "%s" SLASH "pid", confbase);
+		}
+	}
 #endif
 
 	if(!unixsocketname) {

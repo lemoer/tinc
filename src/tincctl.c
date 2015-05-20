@@ -1,6 +1,6 @@
 /*
     tincctl.c -- Controlling a running tincd
-    Copyright (C) 2007-2014 Guus Sliepen <guus@tinc-vpn.org>
+    Copyright (C) 2007-2015 Guus Sliepen <guus@tinc-vpn.org>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -134,6 +134,7 @@ static void usage(bool status) {
 				"    subnets                  - all known subnets in the VPN\n"
 				"    connections              - all meta connections with ourself\n"
 				"    [di]graph                - graph of the VPN in dotty format\n"
+				"    invitations              - outstanding invitations\n"
 				"  info NODE|SUBNET|ADDRESS   Give information about a particular NODE, SUBNET or ADDRESS.\n"
 				"  purge                      Purge unreachable nodes\n"
 				"  debug N                    Set debug level\n"
@@ -375,7 +376,7 @@ static FILE *ask_and_open(const char *filename, const char *what, const char *mo
 static bool ed25519_keygen(bool ask) {
 	ecdsa_t *key;
 	FILE *f;
-	char *pubname, *privname;
+	char fname[PATH_MAX];
 
 	fprintf(stderr, "Generating Ed25519 keypair:\n");
 
@@ -385,41 +386,42 @@ static bool ed25519_keygen(bool ask) {
 	} else
 		fprintf(stderr, "Done.\n");
 
-	xasprintf(&privname, "%s" SLASH "ed25519_key.priv", confbase);
-	f = ask_and_open(privname, "private Ed25519 key", "a", ask, 0600);
-	free(privname);
+	snprintf(fname, sizeof fname, "%s" SLASH "ed25519_key.priv", confbase);
+	f = ask_and_open(fname, "private Ed25519 key", "a", ask, 0600);
 
 	if(!f)
-		return false;
+		goto error;
 
 	if(!ecdsa_write_pem_private_key(key, f)) {
 		fprintf(stderr, "Error writing private key!\n");
-		ecdsa_free(key);
-		fclose(f);
-		return false;
+		goto error;
 	}
 
 	fclose(f);
 
 	if(name)
-		xasprintf(&pubname, "%s" SLASH "hosts" SLASH "%s", confbase, name);
+		snprintf(fname, sizeof fname, "%s" SLASH "hosts" SLASH "%s", confbase, name);
 	else
-		xasprintf(&pubname, "%s" SLASH "ed25519_key.pub", confbase);
+		snprintf(fname, sizeof fname, "%s" SLASH "ed25519_key.pub", confbase);
 
-	f = ask_and_open(pubname, "public Ed25519 key", "a", ask, 0666);
-	free(pubname);
+	f = ask_and_open(fname, "public Ed25519 key", "a", ask, 0666);
 
 	if(!f)
 		return false;
 
 	char *pubkey = ecdsa_get_base64_public_key(key);
 	fprintf(f, "Ed25519PublicKey = %s\n", pubkey);
-	free(pubkey);
 
 	fclose(f);
 	ecdsa_free(key);
 
 	return true;
+
+error:
+	if(f)
+		fclose(f);
+	ecdsa_free(key);
+	return false;
 }
 
 #ifndef DISABLE_LEGACY
@@ -430,7 +432,7 @@ static bool ed25519_keygen(bool ask) {
 static bool rsa_keygen(int bits, bool ask) {
 	rsa_t *key;
 	FILE *f;
-	char *pubname, *privname;
+	char fname[PATH_MAX];
 
 	// Make sure the key size is a multiple of 8 bits.
 	bits &= ~0x7;
@@ -449,44 +451,44 @@ static bool rsa_keygen(int bits, bool ask) {
 	} else
 		fprintf(stderr, "Done.\n");
 
-	xasprintf(&privname, "%s" SLASH "rsa_key.priv", confbase);
-	f = ask_and_open(privname, "private RSA key", "a", ask, 0600);
-	free(privname);
+	snprintf(fname, sizeof fname, "%s" SLASH "rsa_key.priv", confbase);
+	f = ask_and_open(fname, "private RSA key", "a", ask, 0600);
 
 	if(!f)
-		return false;
+		goto error;
 
 	if(!rsa_write_pem_private_key(key, f)) {
 		fprintf(stderr, "Error writing private key!\n");
-		fclose(f);
-		rsa_free(key);
-		return false;
+		goto error;
 	}
 
 	fclose(f);
 
 	if(name)
-		xasprintf(&pubname, "%s" SLASH "hosts" SLASH "%s", confbase, name);
+		snprintf(fname, sizeof fname, "%s" SLASH "hosts" SLASH "%s", confbase, name);
 	else
-		xasprintf(&pubname, "%s" SLASH "rsa_key.pub", confbase);
+		snprintf(fname, sizeof fname, "%s" SLASH "rsa_key.pub", confbase);
 
-	f = ask_and_open(pubname, "public RSA key", "a", ask, 0666);
-	free(pubname);
+	f = ask_and_open(fname, "public RSA key", "a", ask, 0666);
 
 	if(!f)
-		return false;
+		goto error;
 
 	if(!rsa_write_pem_public_key(key, f)) {
 		fprintf(stderr, "Error writing public key!\n");
-		fclose(f);
-		rsa_free(key);
-		return false;
+		goto error;
 	}
 
 	fclose(f);
 	rsa_free(key);
 
 	return true;
+
+error:
+	if(f)
+		fclose(f);
+	rsa_free(key);
+	return false;
 }
 #endif
 
@@ -943,6 +945,65 @@ static int cmd_reload(int argc, char *argv[]) {
 
 }
 
+static int dump_invitations(void) {
+	char dname[PATH_MAX];
+	snprintf(dname, sizeof dname, "%s" SLASH "invitations", confbase);
+	DIR *dir = opendir(dname);
+	if(!dir) {
+		if(errno == ENOENT) {
+			fprintf(stderr, "No outstanding invitations.\n");
+			return 0;
+		}
+
+		fprintf(stderr, "Cannot not read directory %s: %s\n", dname, strerror(errno));
+		return 1;
+	}
+
+	struct dirent *ent;
+	bool found = false;
+
+	while((ent = readdir(dir))) {
+		char buf[MAX_STRING_SIZE];
+		if(b64decode(ent->d_name, buf, 24) != 18)
+			continue;
+
+		char fname[PATH_MAX];
+		snprintf(fname, sizeof fname, "%s" SLASH "%s", dname, ent->d_name);
+		FILE *f = fopen(fname, "r");
+		if(!f) {
+			fprintf(stderr, "Cannot open %s: %s\n", fname, strerror(errno));
+			fclose(f);
+			continue;
+		}
+
+		buf[0] = 0;
+		if(!fgets(buf, sizeof buf, f)) {
+			fprintf(stderr, "Invalid invitation file %s", fname);
+			fclose(f);
+			continue;
+		}
+		fclose(f);
+
+		char *eol = buf + strlen(buf);
+		while(strchr("\t \r\n", *--eol))
+			*eol = 0;
+		if(strncmp(buf, "Name = ", 7) || !check_id(buf + 7)) {
+			fprintf(stderr, "Invalid invitation file %s", fname);
+			continue;
+		}
+
+		found = true;
+		printf("%s %s\n", ent->d_name, buf + 7);
+	}
+
+	closedir(dir);
+
+	if(!found)
+		fprintf(stderr, "No outstanding invitations.\n");
+
+	return 0;
+}
+
 static int cmd_dump(int argc, char *argv[]) {
 	bool only_reachable = false;
 
@@ -962,6 +1023,9 @@ static int cmd_dump(int argc, char *argv[]) {
 		usage(true);
 		return 1;
 	}
+
+	if(!strcasecmp(argv[1], "invitations"))
+		return dump_invitations();
 
 	if(!connect_tincd(true))
 		return 1;
@@ -1534,11 +1598,11 @@ static int cmd_config(int argc, char *argv[]) {
 	}
 
 	// Open the right configuration file.
-	char *filename;
+	char filename[PATH_MAX];
 	if(node)
-		xasprintf(&filename, "%s" SLASH "%s", hosts_dir, node);
+		snprintf(filename, sizeof filename, "%s" SLASH "%s", hosts_dir, node);
 	else
-		filename = tinc_conf;
+		snprintf(filename, sizeof filename, "%s", tinc_conf);
 
 	FILE *f = fopen(filename, "r");
 	if(!f) {
@@ -1546,11 +1610,11 @@ static int cmd_config(int argc, char *argv[]) {
 		return 1;
 	}
 
-	char *tmpfile = NULL;
+	char tmpfile[PATH_MAX];
 	FILE *tf = NULL;
 
 	if(action >= -1) {
-		xasprintf(&tmpfile, "%s.config.tmp", filename);
+		snprintf(tmpfile, sizeof tmpfile, "%s.config.tmp", filename);
 		tf = fopen(tmpfile, "w");
 		if(!tf) {
 			fprintf(stderr, "Could not open temporary file %s: %s\n", tmpfile, strerror(errno));
@@ -1736,11 +1800,11 @@ int check_port(char *name) {
 	for(int i = 0; i < 100; i++) {
 		int port = 0x1000 + (rand() & 0x7fff);
 		if(try_bind(port)) {
-			char *filename;
-			xasprintf(&filename, "%s" SLASH "hosts" SLASH "%s", confbase, name);
+			char filename[PATH_MAX];
+			snprintf(filename, sizeof filename, "%s" SLASH "hosts" SLASH "%s", confbase, name);
 			FILE *f = fopen(filename, "a");
-			free(filename);
 			if(!f) {
+				fprintf(stderr, "Could not open %s: %s\n", filename, strerror(errno));
 				fprintf(stderr, "Please change tinc's Port manually.\n");
 				return 0;
 			}
@@ -1831,8 +1895,8 @@ static int cmd_init(int argc, char *argv[]) {
 	check_port(name);
 
 #ifndef HAVE_MINGW
-	char *filename;
-	xasprintf(&filename, "%s" SLASH "tinc-up", confbase);
+	char filename[PATH_MAX];
+	snprintf(filename, sizeof filename, "%s" SLASH "tinc-up", confbase);
 	if(access(filename, F_OK)) {
 		FILE *f = fopenmask(filename, "w", 0777);
 		if(!f) {
@@ -1942,12 +2006,12 @@ static int cmd_edit(int argc, char *argv[]) {
 		return 1;
 	}
 
-	char *filename = NULL;
+	char filename[PATH_MAX] = "";
 
 	if(strncmp(argv[1], "hosts" SLASH, 6)) {
 		for(int i = 0; conffiles[i]; i++) {
 			if(!strcmp(argv[1], conffiles[i])) {
-				xasprintf(&filename, "%s" SLASH "%s", confbase, argv[1]);
+				snprintf(filename, sizeof filename, "%s" SLASH "%s", confbase, argv[1]);
 				break;
 			}
 		}
@@ -1955,8 +2019,8 @@ static int cmd_edit(int argc, char *argv[]) {
 		argv[1] += 6;
 	}
 
-	if(!filename) {
-		xasprintf(&filename, "%s" SLASH "%s", hosts_dir, argv[1]);
+	if(!*filename) {
+		snprintf(filename, sizeof filename, "%s" SLASH "%s", hosts_dir, argv[1]);
 		char *dash = strchr(argv[1], '-');
 		if(dash) {
 			*dash++ = 0;
@@ -1974,6 +2038,7 @@ static int cmd_edit(int argc, char *argv[]) {
 	xasprintf(&command, "edit \"%s\"", filename);
 #endif
 	int result = system(command);
+	free(command);
 	if(result)
 		return result;
 
@@ -1985,8 +2050,8 @@ static int cmd_edit(int argc, char *argv[]) {
 }
 
 static int export(const char *name, FILE *out) {
-	char *filename;
-	xasprintf(&filename, "%s" SLASH "%s", hosts_dir, name);
+	char filename[PATH_MAX];
+	snprintf(filename, sizeof filename, "%s" SLASH "%s", hosts_dir, name);
 	FILE *in = fopen(filename, "r");
 	if(!in) {
 		fprintf(stderr, "Could not open configuration file %s: %s\n", filename, strerror(errno));
@@ -2073,7 +2138,7 @@ static int cmd_import(int argc, char *argv[]) {
 
 	char buf[4096];
 	char name[4096];
-	char *filename = NULL;
+	char filename[PATH_MAX] = "";
 	int count = 0;
 	bool firstline = true;
 
@@ -2089,8 +2154,7 @@ static int cmd_import(int argc, char *argv[]) {
 			if(out)
 				fclose(out);
 
-			free(filename);
-			xasprintf(&filename, "%s" SLASH "%s", hosts_dir, name);
+			snprintf(filename, sizeof filename, "%s" SLASH "%s", hosts_dir, name);
 
 			if(!force && !access(filename, F_OK)) {
 				fprintf(stderr, "Host configuration file %s already exists, skipping.\n", filename);
@@ -2196,11 +2260,10 @@ static int cmd_network(int argc, char *argv[]) {
 			continue;
 		}
 
-		char *fname;
-		xasprintf(&fname, "%s/%s/tinc.conf", confdir, ent->d_name);
+		char fname[PATH_MAX];
+		snprintf(fname, sizeof fname, "%s/%s/tinc.conf", confdir, ent->d_name);
 		if(!access(fname, R_OK))
 			printf("%s\n", ent->d_name);
-		free(fname);
 	}
 
 	closedir(dir);
@@ -2227,6 +2290,7 @@ static const struct {
 	{"restart", cmd_restart},
 	{"reload", cmd_reload},
 	{"dump", cmd_dump},
+	{"list", cmd_dump},
 	{"purge", cmd_purge},
 	{"debug", cmd_debug},
 	{"retry", cmd_retry},
@@ -2494,7 +2558,7 @@ int main(int argc, char *argv[]) {
 	if(!parse_options(argc, argv))
 		return 1;
 
-	make_names();
+	make_names(false);
 	xasprintf(&tinc_conf, "%s" SLASH "tinc.conf", confbase);
 	xasprintf(&hosts_dir, "%s" SLASH "hosts", confbase);
 
