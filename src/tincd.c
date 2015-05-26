@@ -344,7 +344,7 @@ int main(int argc, char **argv) {
 	if(show_version) {
 		printf("%s version %s (built %s %s, protocol %d.%d)\n", PACKAGE,
 			   BUILD_VERSION, BUILD_DATE, BUILD_TIME, PROT_MAJOR, PROT_MINOR);
-		printf("Copyright (C) 1998-2014 Ivo Timmermans, Guus Sliepen and others.\n"
+		printf("Copyright (C) 1998-2015 Ivo Timmermans, Guus Sliepen and others.\n"
 				"See the AUTHORS file for a complete list.\n\n"
 				"tinc comes with ABSOLUTELY NO WARRANTY.  This is free software,\n"
 				"and you are welcome to redistribute it under certain conditions;\n"
@@ -362,6 +362,18 @@ int main(int argc, char **argv) {
 	if(WSAStartup(MAKEWORD(2, 2), &wsa_state)) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "System call `%s' failed: %s", "WSAStartup", winerror(GetLastError()));
 		return 1;
+	}
+#else
+	// Check if we got an umbilical fd from the process that started us
+	char *umbstr = getenv("TINC_UMBILICAL");
+	if(umbstr) {
+		umbilical = atoi(umbstr);
+		if(fcntl(umbilical, F_GETFL) < 0)
+			umbilical = 0;
+#ifdef FD_CLOEXEC
+		if(umbilical)
+			fcntl(umbilical, F_SETFD, FD_CLOEXEC);
+#endif
 	}
 #endif
 
@@ -465,6 +477,12 @@ int main2(int argc, char **argv) {
 	/* Start main loop. It only exits when tinc is killed. */
 
 	logger(DEBUG_ALWAYS, LOG_NOTICE, "Ready");
+
+	if(umbilical) { // snip!
+		write(umbilical, "", 1);
+		close(umbilical);
+		umbilical = 0;
+	}
 
 	try_outgoing_connections();
 

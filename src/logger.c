@@ -26,6 +26,7 @@
 #include "logger.h"
 #include "connection.h"
 #include "control_common.h"
+#include "process.h"
 #include "sptps.h"
 
 debug_t debug_level = DEBUG_NOTHING;
@@ -37,7 +38,7 @@ static HANDLE loghandle = NULL;
 #endif
 static const char *logident = NULL;
 bool logcontrol = false;
-
+int umbilical = 0;
 
 static void real_logger(int level, int priority, const char *message) {
 	char timestr[32] = "";
@@ -78,6 +79,11 @@ static void real_logger(int level, int priority, const char *message) {
 				break;
 			case LOGMODE_NULL:
 				break;
+		}
+
+		if(umbilical && do_detach) {
+			write(umbilical, message, strlen(message));
+			write(umbilical, "\n", 1);
 		}
 	}
 

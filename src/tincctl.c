@@ -89,7 +89,7 @@ static struct option const long_options[] = {
 static void version(void) {
 	printf("%s version %s (built %s %s, protocol %d.%d)\n", PACKAGE,
 		   BUILD_VERSION, BUILD_DATE, BUILD_TIME, PROT_MAJOR, PROT_MINOR);
-	printf("Copyright (C) 1998-2014 Ivo Timmermans, Guus Sliepen and others.\n"
+	printf("Copyright (C) 1998-2015 Ivo Timmermans, Guus Sliepen and others.\n"
 			"See the AUTHORS file for a complete list.\n\n"
 			"tinc comes with ABSOLUTELY NO WARRANTY.  This is free software,\n"
 			"and you are welcome to redistribute it under certain conditions;\n"
@@ -853,6 +853,13 @@ static int cmd_start(int argc, char *argv[]) {
 	}
 	return status;
 #else
+	int pfd[2] = {-1, -1};
+	if(socketpair(AF_UNIX, SOCK_STREAM, 0, pfd)) {
+		fprintf(stderr, "Could not create umbilical socket: %s\n", strerror(errno));
+		free(nargv);
+		return 1;
+	}
+
 	pid_t pid = fork();
 	if(pid == -1) {
 		fprintf(stderr, "Could not fork: %s\n", strerror(errno));
@@ -860,8 +867,15 @@ static int cmd_start(int argc, char *argv[]) {
 		return 1;
 	}
 
-	if(!pid)
+	if(!pid) {
+		close(pfd[0]);
+		char buf[100] = "";
+		snprintf(buf, sizeof buf, "%d", pfd[1]);
+		setenv("TINC_UMBILICAL", buf, true);
 		exit(execvp(c, nargv));
+	} else {
+		close(pfd[1]);
+	}
 
 	free(nargv);
 
@@ -869,12 +883,33 @@ static int cmd_start(int argc, char *argv[]) {
 #ifdef SIGINT
 	signal(SIGINT, SIG_IGN);
 #endif
+
+	// Pass all log messages from the umbilical to stderr.
+	// A nul-byte right before closure means tincd started succesfully.
+	bool failure = true;
+	char buf[1024];
+	ssize_t len;
+
+	while((len = read(pfd[0], buf, sizeof buf)) > 0) {
+		failure = buf[len - 1];
+		if(!failure)
+			len--;
+		write(2, buf, len);
+	}
+
+	if(len)
+		failure = true;
+
+	close(pfd[0]);
+
+	// Make sure the child process is really gone.
 	result = waitpid(pid, &status, 0);
+
 #ifdef SIGINT
 	signal(SIGINT, SIG_DFL);
 #endif
 
-	if(result != pid || !WIFEXITED(status) || WEXITSTATUS(status)) {
+	if(failure || result != pid || !WIFEXITED(status) || WEXITSTATUS(status)) {
 		fprintf(stderr, "Error starting %s\n", c);
 		return 1;
 	}
