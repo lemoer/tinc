@@ -132,10 +132,10 @@ bool sptps_send_record(sptps_t *s, uint8_t type, const void *data, uint16_t len)
 	// Sanity checks: application cannot send data before handshake is finished,
 	// and only record types 0..127 are allowed.
 	if(!s->outstate)
-		return error(s, EINVAL, "Handshake phase with %s not finished yet", ((connection_t *)s->handle)->name);
+		return error(s, EINVAL, "Handshake phase with not finished yet");
 
 	if(type >= SPTPS_HANDSHAKE)
-		return error(s, EINVAL, "Invalid application record type from %s",	((connection_t *)s->handle)->name);
+		return error(s, EINVAL, "Invalid application record type");
 
 	return send_record_priv(s, type, data, len);
 }
@@ -230,14 +230,14 @@ static bool send_ack(sptps_t *s) {
 // Receive an ACKnowledgement record.
 static bool receive_ack(sptps_t *s, const char *data, uint16_t len) {
 	if(len)
-		return error(s, EIO, "Invalid ACK record length from %s", ((connection_t *)s->handle)->name);
+		return error(s, EIO, "Invalid ACK record length");
 
 	if(s->initiator) {
 		if(!chacha_poly1305_set_key(s->incipher, s->key))
-			return error(s, EINVAL, "Failed to set counter for %s", ((connection_t *)s->handle)->name);
+			return error(s, EINVAL, "Failed to set counter");
 	} else {
 		if(!chacha_poly1305_set_key(s->incipher, s->key + CHACHA_POLY1305_KEYLEN))
-			return error(s, EINVAL, "Failed to set counter for %s", ((connection_t *)s->handle)->name);
+			return error(s, EINVAL, "Failed to set counter");
 	}
 
 	free(s->key);
@@ -251,13 +251,13 @@ static bool receive_ack(sptps_t *s, const char *data, uint16_t len) {
 static bool receive_kex(sptps_t *s, const char *data, uint16_t len) {
 	// Verify length of the HELLO record
 	if(len != 1 + 32 + ECDH_SIZE)
-		return error(s, EIO, "Invalid KEX record length for %s", ((connection_t *)s->handle)->name);
+		return error(s, EIO, "Invalid KEX record length");
 
 	// Ignore version number for now.
 
 	// Make a copy of the KEX message, send_sig() and receive_sig() need it
 	if(s->hiskex)
-		return error(s, EINVAL, "Received a second KEX message before first has been processed from %s", ((connection_t *)s->handle)->name);
+		return error(s, EINVAL, "Received a second KEX message before first has been processed");
 	s->hiskex = realloc(s->hiskex, len);
 	if(!s->hiskex)
 		return error(s, errno, strerror(errno));
@@ -331,7 +331,6 @@ bool sptps_force_kex(sptps_t *s) {
 
 // Receive a handshake record.
 static bool receive_handshake(sptps_t *s, const char *data, uint16_t len) {
-	logger(DEBUG_ALWAYS, LOG_NOTICE, "receive_handshake(%s): current state: %d request", ((connection_t *)s->handle)->name, s->state);
 	// Only a few states to deal with handshaking.
 	switch(s->state) {
 		case SPTPS_SECONDARY_KEX:
