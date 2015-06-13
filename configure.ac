@@ -7,6 +7,8 @@ AC_CONFIG_SRCDIR([src/tincd.c])
 AC_GNU_SOURCE
 AM_INIT_AUTOMAKE([std-options subdir-objects -Wall])
 AC_CONFIG_HEADERS([config.h])
+AM_PROG_AR
+LT_INIT
 
 # Enable GNU extensions.
 # Define this here, not in acconfig's @TOP@ section, since definitions
