@@ -35,6 +35,15 @@
 #include "utils.h"              /* for cp */
 #include "xalloc.h"
 
+/* If nonzero, write log entries to a separate file. */
+bool use_logfile = false;
+
+/* If nonzero, use syslog instead of stderr in no-detach mode. */
+bool use_syslog = false;
+
+/* If nonzero, use null ciphers and skip all key exchanges. */
+bool bypass_security = false;
+
 splay_tree_t *config_tree;
 
 int pinginterval = 0;           /* seconds between pings */

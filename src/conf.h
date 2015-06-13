@@ -34,6 +34,10 @@ typedef struct config_t {
 #include "subnet.h"
 
 extern splay_tree_t *config_tree;
+extern bool use_logfile;
+extern bool use_syslog;
+extern bool bypass_security;
+
 
 extern int pinginterval;
 extern int pingtimeout;
