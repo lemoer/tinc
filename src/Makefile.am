@@ -31,14 +31,16 @@ libed25519_la_SOURCES = \
 	ed25519/precomp_data.h \
 	ed25519/sc.c ed25519/sc.h \
 	ed25519/sha512.c ed25519/sha512.h \
+  ed25519/ecdsa.c \
 	ed25519/sign.c \
 	ed25519/verify.c
 
 libtincconf_la_SOURCES = \
-	conf.c conf.h
+	conf.h
 
 libtincd_la_SOURCES = \
   conf.h \
+  conf.c \
 	buffer.c buffer.h \
 	cipher.h \
 	connection.c connection.h \
@@ -77,7 +79,6 @@ libtincd_la_SOURCES = \
 	netutl.c netutl.h \
 	node.c node.h \
 	prf.h \
-	process.h process.c \
 	protocol.c protocol.h \
 	protocol_auth.c \
 	protocol_edge.c \
@@ -101,32 +102,8 @@ libtincd_la_SOURCES = \
 	ed25519/ecdsa.c \
 	dropin.c dropin.h \
 	getopt.c getopt.h \
-	getopt1.c \
-	$(libed25519_la_SOURCES) \
-	$(libchacha_poly1305_la_SOURCES)
-
-tinc_SOURCES = \
-	invitation.c invitation.h \
-	top.c top.h \
-	fsck.c fsck.h \
-	info.c info.h \
-	tincctl.c tincctl.h \
-	$(libed25519_la_SOURCES) \
-	$(libchacha_poly1305_la_SOURCES)
-
-sptps_test_SOURCES = \
-	sptps_test.c \
-	$(libed25519_la_SOURCES) \
-	$(libchacha_poly1305_la_SOURCES)
-
-sptps_keypair_SOURCES = \
-	sptps_keypair.c \
-	$(libed25519_la_SOURCES)
-
-sptps_speed_SOURCES = \
-	sptps_speed.c \
-	$(libed25519_la_SOURCES) \
-	$(libchacha_poly1305_la_SOURCES)
+	process.h process.c \
+	getopt1.c
 
 ## Conditionally compile device drivers
 
@@ -186,13 +163,34 @@ endif
 endif
 
 tincd_SOURCES = \
-  process.h \
+	conf.h \
 	tincd.c
 
+tinc_SOURCES = \
+	invitation.c invitation.h \
+	top.c top.h \
+	fsck.c fsck.h \
+	info.c info.h \
+	ed25519/ecdsagen.c \
+	tincctl.c tincctl.h
+
+sptps_test_SOURCES = \
+	sptps_test.c
+
+sptps_keypair_SOURCES = \
+	ed25519/ecdsagen.c \
+	sptps_keypair.c
+
+sptps_speed_SOURCES = \
+	ed25519/ecdsagen.c \
+	sptps_speed.c
+
+
 tincd_LDADD = libtincd.la libed25519.la libchacha_poly1305.la libtincconf.la
-tinc_LDADD = $(READLINE_LIBS) $(CURSES_LIBS) libtincd.la libtincconf.la
-sptps_speed_LDADD = -lrt libtincd.la libed25519.la
-sptps_test_LDADD = -lrt libtincd.la libed25519.la
+tinc_LDADD = $(READLINE_LIBS) $(CURSES_LIBS) libtincd.la libtincconf.la libed25519.la libchacha_poly1305.la
+sptps_speed_LDADD = -lrt libtincd.la libed25519.la libtincconf.la libchacha_poly1305.la
+sptps_test_LDADD = -lrt libtincd.la libed25519.la libtincconf.la libchacha_poly1305.la
+sptps_keypair_LDADD = -lrt libed25519.la libtincconf.la libchacha_poly1305.la libtincd.la
 
 LIBS = @LIBS@ -lm
 
