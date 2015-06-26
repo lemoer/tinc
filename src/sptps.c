@@ -132,7 +132,7 @@ bool sptps_send_record(sptps_t *s, uint8_t type, const void *data, uint16_t len)
 	// Sanity checks: application cannot send data before handshake is finished,
 	// and only record types 0..127 are allowed.
 	if(!s->outstate)
-		return error(s, EINVAL, "Handshake phase with not finished yet");
+		return error(s, EINVAL, "Handshake phase not finished yet");
 
 	if(type >= SPTPS_HANDSHAKE)
 		return error(s, EINVAL, "Invalid application record type");
@@ -180,7 +180,7 @@ static bool send_sig(sptps_t *s) {
 
 	// Sign the result.
 	if(!ecdsa_sign(s->mykey, msg, sizeof msg, sig))
-		return error(s, EINVAL, "Failed to sign SIG record for %s", ((connection_t *)s->handle)->name);
+		return error(s, EINVAL, "Failed to sign SIG record");
 
 	// Send the SIG exchange record.
 	return send_record_priv(s, SPTPS_HANDSHAKE, sig, sizeof sig);
@@ -188,12 +188,13 @@ static bool send_sig(sptps_t *s) {
 
 // Generate key material from the shared secret created from the ECDHE key exchange.
 static bool generate_key_material(sptps_t *s, const char *shared, size_t len) {
+
 	// Initialise cipher and digest structures if necessary
 	if(!s->outstate) {
 		s->incipher = chacha_poly1305_init();
 		s->outcipher = chacha_poly1305_init();
 		if(!s->incipher || !s->outcipher)
-			return error(s, EINVAL, "Failed to open cipher for %s", ((connection_t *)s->handle)->name);
+			return error(s, EINVAL, "Failed to open cipher");
 	}
 
 	// Allocate memory for key material
@@ -322,8 +323,9 @@ static bool receive_sig(sptps_t *s, const char *data, uint16_t len) {
 
 // Force another Key EXchange (for testing purposes).
 bool sptps_force_kex(sptps_t *s) {
+
 	if(!s->outstate || s->state != SPTPS_SECONDARY_KEX)
-		return error(s, EINVAL, "Cannot force KEX in current state with %s", ((connection_t *)s->handle)->name);
+		return error(s, EINVAL, "Cannot force KEX in current state");
 
 	s->state = SPTPS_KEX;
 	return send_kex(s);
@@ -445,7 +447,7 @@ bool sptps_verify_datagram(sptps_t *s, const void *data, size_t len) {
 // Receive incoming data, datagram version.
 static bool sptps_receive_data_datagram(sptps_t *s, const char *data, size_t len) {
 	if(len < (s->instate ? 21 : 5))
-		return error(s, EIO, "Received short packet from %s", ((connection_t *)s->handle)->name);
+		return error(s, EIO, "Received short packet from");
 
 	uint32_t seqno;
 	memcpy(&seqno, data, 4);
@@ -454,7 +456,7 @@ static bool sptps_receive_data_datagram(sptps_t *s, const char *data, size_t len
 
 	if(!s->instate) {
 		if(seqno != s->inseqno)
-			return error(s, EIO, "Invalid packet seqno: %d != %d from", seqno, s->inseqno, ((connection_t *)s->handle)->name);
+			return error(s, EIO, "Invalid packet seqno: %d != %d", seqno, s->inseqno);
 
 		s->inseqno = seqno + 1;
 
