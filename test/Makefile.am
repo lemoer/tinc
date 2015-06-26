@@ -1,4 +1,6 @@
+
 TESTS = \
+	simple \
 	basic.test \
 	commandline.test \
 	executables.test \
@@ -9,13 +11,24 @@ TESTS = \
 	sptps-basic.test \
 	variables.test
 
+CC=afl-clang
+
 dist_check_SCRIPTS = $(TESTS)
 
 EXTRA_DIST = testlib.sh
 
-check_PROGRAMS = pong
+check_PROGRAMS = pong simple
 
 pong_SOURCES = pong.c
+
+simple_SOURCES = \
+	simple.c
+
+pong_LDFLAGS = -L$(top_srcdir)/src -ltinc
+
+simple_CFLAGS =  -I$(top_srcdir)/src -I/usr/include -iquote$(top_srcdir)/src
+simple_LDFLAGS = -L$(top_srcdir)/src -lcmocka -ltincd -lchacha_poly1305 -led25519
+
 
 clean-local:
 	-for pid in *.test.?/pid; do ../src/tinc --pidfile="$$pid" stop; done
