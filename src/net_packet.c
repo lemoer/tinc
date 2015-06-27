@@ -837,6 +837,7 @@ bool receive_sptps_record(void *handle, uint8_t type, const void *data, uint16_t
 	}
 
 	vpn_packet_t inpkt;
+	bzero(&inpkt, sizeof(inpkt));
 	inpkt.offset = DEFAULT_PACKET_OFFSET;
 
 	if(type == PKT_PROBE) {

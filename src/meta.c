@@ -287,7 +287,8 @@ bool receive_meta(connection_t *c) {
 
 			char *request = buffer_readline(&c->inbuf);
 			if(request) {
-				bool result = receive_request(c, request);
+				bool result = false;
+				result = receive_request(c, request);
 				if(!result)
 					return false;
 				continue;
