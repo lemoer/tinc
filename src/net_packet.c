@@ -1406,7 +1406,7 @@ void handle_incoming_vpn_data(void *data, int flags) {
 
 	if(len <= 0 || len > MAXSIZE) {
 		if(!sockwouldblock(sockerrno))
-			logger(DEBUG_ALWAYS, LOG_ERR, "Receiving packet failed: %s", sockstrerror(sockerrno));
+			logger(DEBUG_ALWAYS, LOG_ERR, "Receiving packet failed: %s [flags: %x]", sockstrerror(sockerrno), flags);
 		return;
 	}
 
@@ -1514,6 +1514,9 @@ skip_harder:
 
 void handle_device_data(void *data, int flags) {
 	vpn_packet_t packet;
+
+	logger(DEBUG_TRAFFIC, LOG_INFO, "Handle device data at 0x%x flags 0x%x", data, flags);
+
 	packet.offset = DEFAULT_PACKET_OFFSET;
 	packet.priority = 0;
 

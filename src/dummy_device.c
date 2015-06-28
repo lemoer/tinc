@@ -36,10 +36,16 @@ static void close_device(void) {
 }
 
 static bool read_packet(vpn_packet_t *packet) {
+	// silence unsued parameter error
+	if (packet)
+		return false;
 	return false;
 }
 
 static bool write_packet(vpn_packet_t *packet) {
+	// silence unsued parameter error
+	if (packet)
+		return true;
 	return true;
 }
 
