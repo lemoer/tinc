@@ -311,7 +311,7 @@ bool net2str(char *netstr, int len, const subnet_t *subnet) {
 		return false;
 	}
 
-	int result;
+	int result = 0;
 	int prefixlength = -1;
 	switch (subnet->type) {
 		case SUBNET_MAC:

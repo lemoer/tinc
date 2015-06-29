@@ -713,7 +713,7 @@ static void send_udppacket(node_t *n, vpn_packet_t *origpkt) {
 	/* Send the packet */
 
 	const sockaddr_t *sa = NULL;
-	int sock;
+	int sock = -1;
 
 	if(n->status.send_locally)
 		choose_local_address(n, &sa, &sock);
@@ -795,7 +795,7 @@ bool send_sptps_data(node_t *to, node_t *from, int type, const void *data, size_
 	memcpy(buf_ptr, data, len); buf_ptr += len;
 
 	const sockaddr_t *sa = NULL;
-	int sock;
+	int sock = -1;
 	if(relay->status.send_locally)
 		choose_local_address(relay, &sa, &sock);
 	if(!sa)

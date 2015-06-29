@@ -59,14 +59,14 @@ static int info_node(int fd, const char *item) {
 	char via[4096];
 	char nexthop[4096];
 	int code, req, cipher, digest, maclength, compression, distance;
-	short int pmtu, minmtu, maxmtu;
-	unsigned int options;
+	short int pmtu = -1, minmtu = 0, maxmtu = 0;
+	unsigned int options = -1;
 	union {
 		node_status_t bits;
 		uint32_t raw;
 	} status_union;
 	node_status_t status;
-	long int last_state_change;
+	long int last_state_change = -1;
 
 	while(recvline(fd, line, sizeof line)) {
 		int n = sscanf(line, "%d %d %s %s %s port %s %d %d %d %d %x %"PRIx32" %s %s %d %hd %hd %hd %ld", &code, &req, node, id, host, port, &cipher, &digest, &maclength, &compression, &options, &status_union.raw, nexthop, via, &distance, &pmtu, &minmtu, &maxmtu, &last_state_change);
