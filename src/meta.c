@@ -48,17 +48,22 @@ bool send_meta_sptps(void *handle, uint8_t type, const void *buffer, size_t leng
 	return true;
 }
 
-bool send_meta(connection_t *c, const char *buffer, int length) {
+bool send_meta(connection_t *c, const char *buffer, size_t length) {
 	if(!c) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "send_meta() called with NULL pointer!");
 		abort();
 	}
 
-	logger(DEBUG_META, LOG_DEBUG, "Sending %d bytes of metadata to %s (%s)", length,
+	logger(DEBUG_META, LOG_DEBUG, "Sending %zu bytes of metadata to %s (%s)", length,
 			   c->name, c->hostname);
 
-	if(c->protocol_minor >= 2)
-		return sptps_send_record(&c->sptps, 0, buffer, length);
+	if(c->protocol_minor >= 2) {
+		if (length > UINT16_MAX) {
+			logger(DEBUG_ALWAYS, LOG_ERR, "send_meta() aborting due to length %zu >= %d!", length, UINT16_MAX);
+			abort();
+		}
+		return sptps_send_record(&c->sptps, 0, buffer, (uint16_t)length);
+	}
 
 	/* Add our data to buffer */
 	if(c->status.encryptout) {
@@ -82,13 +87,13 @@ bool send_meta(connection_t *c, const char *buffer, int length) {
 	return true;
 }
 
-void send_meta_raw(connection_t *c, const char *buffer, int length) {
+void send_meta_raw(connection_t *c, const char *buffer, size_t length) {
 	if(!c) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "send_meta() called with NULL pointer!");
 		abort();
 	}
 
-	logger(DEBUG_META, LOG_DEBUG, "Sending %d bytes of raw metadata to %s (%s)", length,
+	logger(DEBUG_META, LOG_DEBUG, "Sending %zu bytes of raw metadata to %s (%s)", length,
 			   c->name, c->hostname);
 
 	buffer_add(&c->outbuf, buffer, length);
@@ -96,7 +101,7 @@ void send_meta_raw(connection_t *c, const char *buffer, int length) {
 	io_set(&c->io, IO_READ | IO_WRITE);
 }
 
-void broadcast_meta(connection_t *from, const char *buffer, int length) {
+void broadcast_meta(connection_t *from, const char *buffer, size_t length) {
 	for list_each(connection_t, c, connection_list)
 		if(c != from && c->edge)
 			send_meta(c, buffer, length);
