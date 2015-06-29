@@ -227,7 +227,7 @@ static char *readline(FILE * fp, char *buf, size_t buflen) {
 	if(feof(fp))
 		return NULL;
 
-	p = fgets(buf, buflen, fp);
+	p = fgets(buf, (int)buflen, fp);
 
 	if(!p)
 		return NULL;
@@ -255,7 +255,7 @@ config_t *parse_config_line(char *line, const char *fname, int lineno) {
 	while(strchr("\t ", *--eol))
 		*eol = '\0';
 
-	len = strcspn(value, "\t =");
+	len = (int)strcspn(value, "\t =");
 	value += len;
 	value += strspn(value, "\t ");
 	if(*value == '=') {
