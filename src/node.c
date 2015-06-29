@@ -130,7 +130,9 @@ void node_del(node_t *n) {
 }
 
 node_t *lookup_node(char *name) {
-	node_t n = {NULL};
+	node_t n;
+
+	memset(&n, 0x0, sizeof(node_t));
 
 	n.name = name;
 
