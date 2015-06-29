@@ -21,6 +21,8 @@
 #ifndef __TINC_UTILS_H__
 #define __TINC_UTILS_H__
 
+#define UNUSED(x) (void)(x)
+
 extern int hex2bin(const char *src, void *dst, int length);
 extern int bin2hex(const void *src, char *dst, int length);
 
