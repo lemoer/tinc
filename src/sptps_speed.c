@@ -139,7 +139,7 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	struct pollfd pfd[2] = {{fd[0], POLLIN, NULL}, {fd[1], POLLIN, NULL}};
+	struct pollfd pfd[2] = {{fd[0], POLLIN, 0}, {fd[1], POLLIN, 0}};
 
 	fprintf(stderr, "SPTPS/TCP authenticate for %lg seconds: ", duration);
 	for(clock_start(); clock_countto(duration);) {
