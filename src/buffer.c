@@ -22,9 +22,9 @@
 #include "buffer.h"
 #include "xalloc.h"
 
-void buffer_compact(buffer_t *buffer, int maxsize) {
+void buffer_compact(buffer_t *buffer, size_t maxsize) {
 	if(buffer->len >= maxsize || buffer->offset / 7 > buffer->len / 8) {
-		memmove(buffer->data, buffer->data + buffer->offset, buffer->len - buffer->offset);
+		memmove(buffer->data, buffer->data + buffer->offset, (size_t)(buffer->len - buffer->offset));
 		buffer->len -= buffer->offset;
 		buffer->offset = 0;
 	}
@@ -32,7 +32,7 @@ void buffer_compact(buffer_t *buffer, int maxsize) {
 
 // Make sure we can add size bytes to the buffer, and return a pointer to the start of those bytes.
 
-char *buffer_prepare(buffer_t *buffer, int size) {
+char *buffer_prepare(buffer_t *buffer, size_t size) {
 	if(!buffer->data) {
 		buffer->maxlen = size;
 		buffer->data = xmalloc(size);
@@ -58,7 +58,7 @@ char *buffer_prepare(buffer_t *buffer, int size) {
 
 // Copy data into the buffer.
 
-void buffer_add(buffer_t *buffer, const char *data, int size) {
+void buffer_add(buffer_t *buffer, const char *data, size_t size) {
 	memcpy(buffer_prepare(buffer, size), data, size);
 }
 
@@ -67,7 +67,7 @@ void buffer_add(buffer_t *buffer, const char *data, int size) {
 static char *buffer_consume(buffer_t *buffer, int size) {
 	char *start = buffer->data + buffer->offset;
 
-	buffer->offset += size;
+	buffer->offset += (size_t)size;
 
 	if(buffer->offset >= buffer->len) {
 		buffer->offset = 0;
@@ -85,18 +85,18 @@ char *buffer_readline(buffer_t *buffer) {
 	if(!newline)
 		return NULL;
 
-	int len = newline + 1 - (buffer->data + buffer->offset);
+	int len = (int)(newline + 1 - (buffer->data + buffer->offset));
 	*newline = 0;
 	return buffer_consume(buffer, len);
 }
 
 // Check if we have enough bytes in the buffer, and if so, return a pointer to the start of them.
 
-char *buffer_read(buffer_t *buffer, int size) {
+char *buffer_read(buffer_t *buffer, size_t size) {
 	if(buffer->len - buffer->offset < size)
 		return NULL;
 
-	return buffer_consume(buffer, size);
+	return buffer_consume(buffer, (int)size);
 }
 
 void buffer_clear(buffer_t *buffer) {
