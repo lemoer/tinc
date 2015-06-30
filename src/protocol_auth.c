@@ -498,11 +498,6 @@ bool metakey_h(connection_t *c, const char *request) {
 	char enckey[len];
 	char key[len];
 
-	bzero(key, len);
-	bzero(enckey, len);
-
-	cipher = digest = maclength =compression = 0;
-
 	if(sscanf(request, "%*d %d %d %d %d " MAX_STRING, &cipher, &digest, &maclength, &compression, hexkey) != 5) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "Got bad %s from %s (%s)", "METAKEY", c->name, c->hostname);
 		return false;
@@ -697,7 +692,7 @@ bool send_ack(connection_t *c) {
 	   to create node_t and edge_t structures. */
 
 	struct timeval now;
-	bool choice = false;
+	bool choice;
 
 	/* Estimate weight */
 
