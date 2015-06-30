@@ -11,7 +11,7 @@ TESTS = \
 	sptps-basic.test \
 	variables.test
 
-CC=afl-clang
+CC=clang
 
 dist_check_SCRIPTS = $(TESTS)
 
