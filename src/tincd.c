@@ -79,7 +79,7 @@ static bool do_chroot = false;
 static const char *switchuser = NULL;
 #endif
 
-char **g_argv;                  /* a copy of the cmdline arguments */
+static char **g_argv;                  /* a copy of the cmdline arguments */
 
 static int status = 1;
 
