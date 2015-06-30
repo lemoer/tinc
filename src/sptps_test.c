@@ -32,11 +32,11 @@
 
 // Symbols necessary to link with logger.o
 bool send_request(void *c, const char *msg, ...) { return false; }
-struct list_t *connection_list = NULL;
+static struct list_t *connection_list = NULL;
 bool send_meta(void *c, const char *msg , int len) { return false; }
-char *logfilename = NULL;
-bool do_detach = false;
-struct timeval now;
+static char *logfilename = NULL;
+static bool do_detach = false;
+static struct timeval now;
 
 static bool verbose;
 static bool readonly;
@@ -75,7 +75,7 @@ static struct option const long_options[] = {
 	{NULL, 0, NULL, 0}
 };
 
-const char *program_name;
+static const char *program_name;
 
 static void usage() {
 	fprintf(stderr, "Usage: %s [options] my_ed25519_key_file his_ed25519_key_file [host] port\n\n", program_name);

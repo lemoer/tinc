@@ -30,11 +30,11 @@
 
 // Symbols necessary to link with logger.o
 bool send_request(void *c, const char *msg, ...) { return false; }
-struct list_t *connection_list = NULL;
+static struct list_t *connection_list = NULL;
 bool send_meta(void *c, const char *msg , int len) { return false; }
-char *logfilename = NULL;
-bool do_detach = false;
-struct timeval now;
+static char *logfilename = NULL;
+static bool do_detach = false;
+static struct timeval now;
 
 static bool send_data(void *handle, uint8_t type, const void *data, size_t len) {
 	int fd = *(int *)handle;
@@ -59,11 +59,11 @@ static void receive_data(sptps_t *sptps) {
 	}
 }
 
-struct timespec start;
-struct timespec end;
-double elapsed;
-double rate;
-unsigned int count;
+static struct timespec start;
+static struct timespec end;
+static double elapsed;
+static double rate;
+static unsigned int count;
 
 static void clock_start() {
 	count = 0;
@@ -139,7 +139,7 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	struct pollfd pfd[2] = {{fd[0], POLLIN}, {fd[1], POLLIN}};
+	struct pollfd pfd[2] = {{fd[0], POLLIN, -1}, {fd[1], POLLIN, -1}};
 
 	fprintf(stderr, "SPTPS/TCP authenticate for %lg seconds: ", duration);
 	for(clock_start(); clock_countto(duration);) {
