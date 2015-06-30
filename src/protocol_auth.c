@@ -498,10 +498,11 @@ bool metakey_h(connection_t *c, const char *request) {
 	char enckey[len];
 	char key[len];
 
-	bzero(key, len);
-	bzero(enckey, len);
+	memset(&key, 0x0, len);
+	memset(&enckey, 0x0, len);
+	memset(&hexkey,0x0, MAX_STRING_SIZE);
 
-	cipher = digest = maclength =compression = 0;
+	cipher = digest = maclength = compression = -1;
 
 	if(sscanf(request, "%*d %d %d %d %d " MAX_STRING, &cipher, &digest, &maclength, &compression, hexkey) != 5) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "Got bad %s from %s (%s)", "METAKEY", c->name, c->hostname);

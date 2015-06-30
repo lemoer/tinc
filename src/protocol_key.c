@@ -58,7 +58,7 @@ void send_key_changed(void) {
 bool key_changed_h(connection_t *c, const char *request) {
 	char name[MAX_STRING_SIZE];
 	node_t *n;
-
+	memset(&name, 0x0, MAX_STRING_SIZE);
 	if(sscanf(request, "%*d %*x " MAX_STRING, name) != 1) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "Got bad %s from %s (%s)", "KEY_CHANGED",
 			   c->name, c->hostname);
@@ -136,6 +136,7 @@ static bool req_key_ext_h(connection_t *c, const char *request, node_t *from, no
 
 		char buf[MAX_STRING_SIZE];
 		int len;
+		memset(&buf, 0x0, MAX_STRING_SIZE);
 		if(sscanf(request, "%*d %*s %*s %*d " MAX_STRING, buf) != 1 || !(len = b64decode(buf, buf, strlen(buf)))) {
 			logger(DEBUG_ALWAYS, LOG_ERR, "Got bad %s from %s (%s) to %s (%s): %s", "SPTPS_PACKET", from->name, from->hostname, to->name, to->hostname, "invalid SPTPS data");
 			return true;
@@ -190,6 +191,7 @@ static bool req_key_ext_h(connection_t *c, const char *request, node_t *from, no
 			}
 
 			char pubkey[MAX_STRING_SIZE];
+			memset(&pubkey, 0x0, MAX_STRING_SIZE);
 			if(sscanf(request, "%*d %*s %*s %*d " MAX_STRING, pubkey) != 1 || !(from->ecdsa = ecdsa_set_base64_public_key(pubkey))) {
 				logger(DEBUG_ALWAYS, LOG_ERR, "Got bad %s from %s (%s): %s", "ANS_PUBKEY", from->name, from->hostname, "invalid pubkey");
 				return true;
@@ -211,7 +213,9 @@ static bool req_key_ext_h(connection_t *c, const char *request, node_t *from, no
 				logger(DEBUG_ALWAYS, LOG_DEBUG, "Got REQ_KEY from %s while we already started a SPTPS session!", from->name);
 
 			char buf[MAX_STRING_SIZE];
-			int len;
+			int len = -1;
+
+			memset(&buf, 0x0, MAX_STRING_SIZE);
 
 			if(sscanf(request, "%*d %*s %*s %*d " MAX_STRING, buf) != 1 || !(len = b64decode(buf, buf, strlen(buf)))) {
 				logger(DEBUG_ALWAYS, LOG_ERR, "Got bad %s from %s (%s): %s", "REQ_SPTPS_START", from->name, from->hostname, "invalid SPTPS data");
@@ -241,6 +245,9 @@ bool req_key_h(connection_t *c, const char *request) {
 	char to_name[MAX_STRING_SIZE];
 	node_t *from, *to;
 	int reqno = 0;
+
+	memset(&from_name, 0x0, MAX_STRING_SIZE);
+	memset(&to_name, 0x0, MAX_STRING_SIZE);
 
 	if(sscanf(request, "%*d " MAX_STRING " " MAX_STRING " %d", from_name, to_name, &reqno) < 2) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "Got bad %s from %s (%s)", "REQ_KEY", c->name,
@@ -354,10 +361,19 @@ bool ans_key_h(connection_t *c, const char *request) {
 	char from_name[MAX_STRING_SIZE];
 	char to_name[MAX_STRING_SIZE];
 	char key[MAX_STRING_SIZE];
-	char address[MAX_STRING_SIZE] = "";
-	char port[MAX_STRING_SIZE] = "";
+	char address[MAX_STRING_SIZE];
+	char port[MAX_STRING_SIZE];
 	int cipher, digest, maclength, compression, keylen;
 	node_t *from, *to;
+
+	from = to = NULL;
+
+	cipher = digest = maclength = compression = keylen = -1;
+	memset(&from_name, 0x0, MAX_STRING_SIZE);
+	memset(&to_name, 0x0, MAX_STRING_SIZE);
+	memset(&key, 0x0, MAX_STRING_SIZE);
+	memset(&address, 0x0, MAX_STRING_SIZE);
+	memset(&port, 0x0, MAX_STRING_SIZE);
 
 	if(sscanf(request, "%*d "MAX_STRING" "MAX_STRING" "MAX_STRING" %d %d %d %d "MAX_STRING" "MAX_STRING,
 		from_name, to_name, key, &cipher, &digest, &maclength,
