@@ -203,7 +203,6 @@ AM_CFLAGS = -DCONFDIR=\"$(sysconfdir)\" -DLOCALSTATEDIR=\"$(localstatedir)\" -DS
 	-Werror=conditional-uninitialized \
 	-Werror=uninitialized \
 	-Werror=missing-field-initializers \
-	-Werror=unused-parameter \
 	-Werror=missing-variable-declarations \
 	-Wno-conversion \
 	-Wno-date-time \
