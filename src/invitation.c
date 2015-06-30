@@ -310,7 +310,7 @@ int cmd_invite(int argc, char *argv[]) {
 		fprintf(stderr, "Error while reading directory %s: %s\n", filename, strerror(errno));
 		return 1;
 	}
-
+		
 	ecdsa_t *key;
 	snprintf(filename, sizeof filename, "%s" SLASH "invitations" SLASH "ed25519_key.priv", confbase);
 
@@ -573,7 +573,7 @@ make_names:
 		snprintf(temp_netname, sizeof temp_netname, "join_%x", rand());
 		netname = temp_netname;
 		goto make_names;
-	}
+	}	
 
 	if(mkdir(confbase, 0777) && errno != EEXIST) {
 		fprintf(stderr, "Could not create directory %s: %s\n", confbase, strerror(errno));
@@ -605,7 +605,7 @@ make_names:
 	// Filter first chunk on approved keywords, split between tinc.conf and hosts/Name
 	// Other chunks go unfiltered to their respective host config files
 	const char *p = data;
-	char *l = NULL, *value = NULL;
+	char *l, *value;
 
 	while((l = get_line(&p))) {
 		// Ignore comments
@@ -971,7 +971,7 @@ next:
 		return 1;
 
 	}
-
+	
 	ecdsa_t *hiskey = ecdsa_set_base64_public_key(fingerprint);
 	if(!hiskey)
 		return 1;
@@ -1001,7 +1001,7 @@ next:
 			p += done;
 		}
 	}
-
+	
 	sptps_stop(&sptps);
 	ecdsa_free(hiskey);
 	ecdsa_free(key);
