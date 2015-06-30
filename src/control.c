@@ -78,11 +78,12 @@ bool control_h(connection_t *c, const char *request) {
 			return control_ok(c, REQ_PURGE);
 
 		case REQ_SET_DEBUG: {
-			debug_t new_level;
+			int new_level;
 			if(sscanf(request, "%*d %*d %d", &new_level) != 1)
 				return false;
 			send_request(c, "%d %d %d", CONTROL, REQ_SET_DEBUG, debug_level);
-			debug_level = new_level;
+			if(new_level >= 0)
+				debug_level = new_level;
 			return true;
 		}
 
