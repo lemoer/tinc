@@ -131,7 +131,7 @@ static void sptps_logger(sptps_t *s, int s_errno, const char *format, va_list ap
 		// but both types have the name and hostname fields at the same offsets.
 		connection_t *c = s->handle;
 		if(c)
-			snprintf(message + len, sizeof message - len, " from %s (%s) [errno: %d]", c->name, c->hostname, s_errno);
+			snprintf(message + len, sizeof message - len, " from %s (%s)", c->name, c->hostname);
 	}
 
 	real_logger(DEBUG_ALWAYS, LOG_ERR, message);
