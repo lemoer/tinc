@@ -251,12 +251,15 @@ static void learn_mac(mac_t *address) {
 /* RFC 792 */
 
 static void route_ipv4_unreachable(node_t *source, vpn_packet_t *packet, length_t ether_size, uint8_t type, uint8_t code) {
-	struct ip ip = {0};
-	struct icmp icmp = {0};
+	struct ip ip;
+	struct icmp icmp;
 
 	struct in_addr ip_src;
 	struct in_addr ip_dst;
 	uint32_t oldlen;
+
+	memset(&ip, 0x0, sizeof(ip));
+	memset(&icmp, 0x0, sizeof(icmp));
 
 	if(ratelimit(3))
 		return;
@@ -445,7 +448,7 @@ static void route_ipv4(node_t *source, vpn_packet_t *packet) {
 
 static void route_ipv6_unreachable(node_t *source, vpn_packet_t *packet, length_t ether_size, uint8_t type, uint8_t code) {
 	struct ip6_hdr ip6;
-	struct icmp6_hdr icmp6 = {0};
+	struct icmp6_hdr icmp6;
 	uint16_t checksum;
 
 	struct {
@@ -454,6 +457,10 @@ static void route_ipv6_unreachable(node_t *source, vpn_packet_t *packet, length_
 		uint32_t length;
 		uint32_t next;
 	} pseudo;
+
+	memset(&ip6, 0x0, sizeof(struct ip6_hdr));
+	memset(&icmp6, 0x0, sizeof(struct icmp6_hdr));
+	memset(&pseudo, 0x0, sizeof(pseudo));
 
 	if(ratelimit(3))
 		return;
