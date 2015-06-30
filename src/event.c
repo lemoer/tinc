@@ -179,14 +179,12 @@ static int pipefd[2] = {-1, -1};
 static splay_tree_t signal_tree = {.compare = (splay_compare_t)signal_compare};
 
 static void signal_handler(int signum) {
-	unsigned char num = (unsigned char)signum;
+	unsigned char num = signum;
 	write(pipefd[1], &num, 1);
 }
 
 static void signalio_handler(void *data, int flags) {
 	unsigned char signum;
-	UNUSED(flags);
-	UNUSED(data);
 	if(read(pipefd[0], &signum, 1) != 1)
 		return;
 

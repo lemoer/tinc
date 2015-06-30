@@ -28,7 +28,6 @@
 #include "logger.h"
 #include "prf.h"
 #include "sptps.h"
-#include "utils.h"
 
 unsigned int sptps_replaywin = 16;
 
@@ -53,15 +52,9 @@ unsigned int sptps_replaywin = 16;
 */
 
 void sptps_log_quiet(sptps_t *s, int s_errno, const char *format, va_list ap) {
-	UNUSED(s);
-	UNUSED(s_errno);
-	UNUSED(format);
-	UNUSED(ap);
 }
 
 void sptps_log_stderr(sptps_t *s, int s_errno, const char *format, va_list ap) {
-	UNUSED(s);
-	UNUSED(s_errno);
 	vfprintf(stderr, format, ap);
 	fputc('\n', stderr);
 }
