@@ -179,7 +179,8 @@ static void age_past_requests(void *data) {
 }
 
 bool seen_request(const char *request) {
-	past_request_t *new, p = {NULL};
+	past_request_t *new, p;
+	memset(&p, 0x0, sizeof(past_request_t));
 
 	p.request = request;
 
