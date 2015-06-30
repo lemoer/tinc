@@ -142,7 +142,7 @@ bool receive_meta_sptps(void *handle, uint8_t type, const void *vdata, uint16_t 
 }
 
 bool receive_meta(connection_t *c) {
-	ssize_t inlen;
+	int inlen;
 	char inbuf[MAXBUFSIZE];
 	char *bufp = inbuf, *endp;
 
