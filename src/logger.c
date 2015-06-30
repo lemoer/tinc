@@ -96,8 +96,8 @@ static void real_logger(int level, int priority, const char *message) {
 			logcontrol = true;
 			if(level > (c->outcompression >= 0 ? (int)c->outcompression : (int)debug_level))
 				continue;
-			size_t len = strlen(message);
-			if(send_request(c, "%d %d %zu", CONTROL, REQ_LOG, len))
+			int len = strlen(message);
+			if(send_request(c, "%d %d %d", CONTROL, REQ_LOG, len))
 				send_meta(c, message, len);
 		}
 		suppress = false;
