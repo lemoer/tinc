@@ -1,6 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
+AC_CONFIG_MACRO_DIRS([m4])
 AC_INIT([tinc], m4_esyscmd_s((git describe || echo UNKNOWN) | sed 's/release-//'))
 AC_CONFIG_SRCDIR([src/tincd.c])
 AC_GNU_SOURCE
@@ -14,6 +15,7 @@ AC_GNU_SOURCE
 AC_DEFINE([__USE_BSD], 1, [Enable BSD extensions])
 
 dnl Checks for programs.
+CFLAGS="-g -O0"
 AC_PROG_CC_C99
 AC_PROG_CPP
 AC_PROG_INSTALL
