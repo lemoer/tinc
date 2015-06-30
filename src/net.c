@@ -447,17 +447,11 @@ int main_loop(void) {
 	timeout_add(&periodictimer, periodic_handler, &periodictimer, &(struct timeval){pingtimeout, rand() % 100000});
 
 #ifndef HAVE_MINGW
-	signal_t sighup;
-	signal_t sigterm;
-	signal_t sigquit;
-	signal_t sigint;
-	signal_t sigalrm;
-
-	memset(&sighup, 0x0, sizeof(signal_t));
-	memset(&sigterm, 0x0, sizeof(signal_t));
-	memset(&sigquit, 0x0, sizeof(signal_t));
-	memset(&sigint, 0x0, sizeof(signal_t));
-	memset(&sigalrm, 0x0, sizeof(signal_t));
+	signal_t sighup = {0};
+	signal_t sigterm = {0};
+	signal_t sigquit = {0};
+	signal_t sigint = {0};
+	signal_t sigalrm = {0};
 
 	signal_add(&sighup, sighup_handler, &sighup, SIGHUP);
 	signal_add(&sigterm, sigterm_handler, &sigterm, SIGTERM);

@@ -65,8 +65,7 @@ static bool setup_device(void) {
 	fcntl(device_fd, F_SETFD, FD_CLOEXEC);
 #endif
 
-	struct ifreq ifr;
-	memset(&ifr, 0x0, sizeof(struct ifreq));
+	struct ifreq ifr = {{{0}}};
 
 	get_config_string(lookup_config(config_tree, "DeviceType"), &type);
 

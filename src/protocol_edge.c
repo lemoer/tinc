@@ -70,16 +70,12 @@ bool add_edge_h(connection_t *c, const char *request) {
 	char to_port[MAX_STRING_SIZE];
 	char address_local[MAX_STRING_SIZE];
 	char port_local[MAX_STRING_SIZE];
-	sockaddr_t address, local_address;
+	sockaddr_t address, local_address = {{0}};
 	uint32_t options;
 	int weight;
 
-	memset(&address, 0x0, sizeof(sockaddr_t));
-	memset(&local_address, 0x0, sizeof(sockaddr_t));
-
 	int parameter_count = sscanf(request, "%*d %*x "MAX_STRING" "MAX_STRING" "MAX_STRING" "MAX_STRING" %x %d "MAX_STRING" "MAX_STRING,
 			                      from_name, to_name, to_address, to_port, &options, &weight, address_local, port_local);
-
 	if (parameter_count != 6 && parameter_count != 8) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "Got bad %s from %s (%s)", "ADD_EDGE", c->name,
 			   c->hostname);

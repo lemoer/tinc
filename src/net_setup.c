@@ -687,11 +687,7 @@ static bool add_listen_address(char *address, bool bindto) {
 			*address = 0;
 	}
 
-	struct addrinfo *ai, hint;
-	ai = NULL;
-
-	memset(&hint, 0x0, sizeof(struct addrinfo));
-
+	struct addrinfo *ai, hint = {0};
 	hint.ai_family = addressfamily;
 	hint.ai_socktype = SOCK_STREAM;
 	hint.ai_protocol = IPPROTO_TCP;
