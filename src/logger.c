@@ -48,10 +48,10 @@ static void real_logger(int level, int priority, const char *message) {
 	if(suppress)
 		return;
 
-	if(!logcontrol && (level > (int)debug_level || logmode == LOGMODE_NULL))
+	if(!logcontrol && (level > debug_level || logmode == LOGMODE_NULL))
 		return;
 
-	if(level <= (int)debug_level) {
+	if(level <= debug_level) {
 		switch(logmode) {
 			case LOGMODE_STDERR:
 				fprintf(stderr, "%s\n", message);
@@ -94,7 +94,7 @@ static void real_logger(int level, int priority, const char *message) {
 			if(!c->status.log)
 				continue;
 			logcontrol = true;
-			if(level > (c->outcompression >= 0 ? (int)c->outcompression : (int)debug_level))
+			if(level > (c->outcompression >= 0 ? c->outcompression : debug_level))
 				continue;
 			int len = strlen(message);
 			if(send_request(c, "%d %d %d", CONTROL, REQ_LOG, len))
@@ -109,10 +109,10 @@ void logger(int level, int priority, const char *format, ...) {
 	char message[1024] = "";
 
 	va_start(ap, format);
-	int len = vsnprintf(message, sizeof(message), format, ap);
+	int len = vsnprintf(message, sizeof message, format, ap);
 	va_end(ap);
 
-	if(len > 0 && len < (int)sizeof(message) && message[len - 1] == '\n')
+	if(len > 0 && len < sizeof message && message[len - 1] == '\n')
 		message[len - 1] = 0;
 
 	real_logger(level, priority, message);
@@ -123,7 +123,7 @@ static void sptps_logger(sptps_t *s, int s_errno, const char *format, va_list ap
 	size_t msglen = sizeof message;
 
 	int len = vsnprintf(message, msglen, format, ap);
-	if(len > 0 && len < (int)sizeof(message)) {
+	if(len > 0 && len < sizeof message) {
 		if(message[len - 1] == '\n')
 			message[--len] = 0;
 
@@ -131,7 +131,7 @@ static void sptps_logger(sptps_t *s, int s_errno, const char *format, va_list ap
 		// but both types have the name and hostname fields at the same offsets.
 		connection_t *c = s->handle;
 		if(c)
-			snprintf(message + len, sizeof(message) - (unsigned long)len, " from %s (%s) [errno: %d]", c->name, c->hostname, s_errno);
+			snprintf(message + len, sizeof message - len, " from %s (%s) [errno: %d]", c->name, c->hostname, s_errno);
 	}
 
 	real_logger(DEBUG_ALWAYS, LOG_ERR, message);
