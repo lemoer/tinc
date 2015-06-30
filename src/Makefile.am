@@ -49,7 +49,7 @@ libtincd_la_SOURCES = \
 	crypto.h \
 	device.h \
 	digest.h \
-	dropin.c dropin.h \
+	dropin.c \
 	dummy_device.c \
 	ecdh.h \
 	ecdsa.h \
@@ -60,8 +60,6 @@ libtincd_la_SOURCES = \
 	fake-gai-errnos.h \
 	fake-getaddrinfo.c fake-getaddrinfo.h \
 	fake-getnameinfo.c fake-getnameinfo.h \
-	getopt.c getopt.h \
-	getopt1.c \
 	graph.c graph.h \
 	hash.c hash.h \
 	have.h \
@@ -100,7 +98,6 @@ libtincd_la_SOURCES = \
 	version.c version.h \
 	ed25519/ecdh.c \
 	ed25519/ecdsa.c \
-	dropin.c dropin.h \
 	getopt.c getopt.h \
 	process.h process.c \
 	getopt1.c
