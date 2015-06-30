@@ -639,7 +639,7 @@ void handle_new_meta_connection(void *data, int flags) {
 	fd = accept(l->tcp.fd, &sa.sa, &len);
 
 	if(fd < 0) {
-		logger(DEBUG_ALWAYS, LOG_ERR, "Accepting a new connection failed: %s, data at 0x%x flags 0x%x", sockstrerror(sockerrno), data, flags);
+		logger(DEBUG_ALWAYS, LOG_ERR, "Accepting a new connection failed: %s", sockstrerror(sockerrno));
 		return;
 	}
 
@@ -736,7 +736,7 @@ void handle_new_unix_connection(void *data, int flags) {
 	fd = accept(io->fd, &sa.sa, &len);
 
 	if(fd < 0) {
-		logger(DEBUG_ALWAYS, LOG_ERR, "Accepting a new connection failed: %s data at 0x%x flags 0x%x", sockstrerror(sockerrno), data, flags);
+		logger(DEBUG_ALWAYS, LOG_ERR, "Accepting a new connection failed: %s", sockstrerror(sockerrno));
 		return;
 	}
 
