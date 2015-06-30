@@ -22,6 +22,7 @@
 #define __TINC_SUBNET_H__
 
 #include "net.h"
+#include "hash.h"
 
 typedef enum subnet_type_t {
 	SUBNET_MAC = 0,
@@ -65,6 +66,9 @@ typedef struct subnet_t {
 #define MAXNETSTR 64
 
 extern splay_tree_t *subnet_tree;
+extern hash_t *ipv4_cache;
+extern hash_t *ipv6_cache;
+extern hash_t *mac_cache;
 
 extern int subnet_compare(const struct subnet_t *, const struct subnet_t *);
 extern subnet_t *new_subnet(void) __attribute__ ((__malloc__));
