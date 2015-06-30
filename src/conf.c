@@ -197,7 +197,8 @@ bool get_config_address(const config_t *cfg, struct addrinfo **result) {
 }
 
 bool get_config_subnet(const config_t *cfg, subnet_t ** result) {
-	subnet_t subnet = {NULL};
+	subnet_t subnet;
+	memset(&subnet, 0x0, sizeof(subnet_t));
 
 	if(!cfg)
 		return false;
@@ -392,7 +393,7 @@ bool read_server_config(void) {
 		snprintf(dname, sizeof dname, "%s" SLASH "conf.d", confbase);
 		DIR *dir = opendir (dname);
 		// If we can find this dir
-		if (dir) { 
+		if (dir) {
 			struct dirent *ep;
 			// We list all the files in it
 			while (x && (ep = readdir (dir))) {
