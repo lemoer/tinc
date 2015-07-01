@@ -22,7 +22,11 @@
 
 static inline void *xmalloc(size_t n) __attribute__ ((__malloc__));
 static inline void *xmalloc(size_t n) {
+#ifdef UNIT_TESTING
+	void *p = test_malloc(n);
+#else
 	void *p = malloc(n);
+#endif
 	if(!p)
 		abort();
 	return p;
@@ -30,14 +34,22 @@ static inline void *xmalloc(size_t n) {
 
 static inline void *xzalloc(size_t n) __attribute__ ((__malloc__));
 static inline void *xzalloc(size_t n) {
+#ifdef UNIT_TESTING
+	void *p = test_calloc(1, n);
+#else
 	void *p = calloc(1, n);
+#endif
 	if(!p)
 		abort();
 	return p;
 }
 
 static inline void *xrealloc(void *p, size_t n) {
+#ifdef UNIT_TESTING
+	p = test_realloc(p, n);
+#else
 	p = realloc(p, n);
+#endif
 	if(!p)
 		abort();
 	return p;
