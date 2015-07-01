@@ -83,6 +83,16 @@ void free_edge(edge_t *e) {
 
 void edge_add(edge_t *e) {
 	splay_insert(edge_weight_tree, e);
+	if (!e->from) {
+		logger(DEBUG_ALWAYS, LOG_ERR, "edge_add(): e->from is NULL!");
+		abort();
+	}
+
+	if (!e->to) {
+		logger(DEBUG_ALWAYS, LOG_ERR, "edge_add(): e->to is NULL!");
+		abort();
+	}
+
 	splay_insert(e->from->edge_tree, e);
 
 	e->reverse = lookup_edge(e->to, e->from);
@@ -96,6 +106,11 @@ void edge_del(edge_t *e) {
 		e->reverse->reverse = NULL;
 
 	splay_delete(edge_weight_tree, e);
+	if (!e->from) {
+		logger(DEBUG_ALWAYS, LOG_ERR, "edge_del(): e->from is NULL!");
+		abort();
+	}
+
 	splay_delete(e->from->edge_tree, e);
 }
 
