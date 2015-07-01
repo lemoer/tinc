@@ -299,8 +299,10 @@ bool req_key_h(connection_t *c, const char *request) {
 }
 
 bool send_ans_key(node_t *to) {
-	if(to->status.sptps && to->status.validkey_in)
+	if(to->status.sptps && to->status.validkey_in) {
+		logger(DEBUG_ALWAYS, LOG_ERR, "send_ans_key(): status.validkey_in set - aborting!");
 		abort();
+	}
 
 #ifdef DISABLE_LEGACY
 	return false;
@@ -315,18 +317,26 @@ bool send_ans_key(node_t *to) {
 
 	if(myself->incipher) {
 		to->incipher = cipher_open_by_nid(cipher_get_nid(myself->incipher));
-		if(!to->incipher)
+		if(!to->incipher) {
+			logger(DEBUG_ALWAYS, LOG_ERR, "send_ans_key(): cipher not set - aborting!");
 			abort();
-		if(!cipher_set_key(to->incipher, key, false))
+		}
+		if(!cipher_set_key(to->incipher, key, false)) {
+			logger(DEBUG_ALWAYS, LOG_ERR, "send_ans_key(): cipher_set_key() failed - aborting!");
 			abort();
+		}
 	}
 
 	if(myself->indigest) {
 		to->indigest = digest_open_by_nid(digest_get_nid(myself->indigest), digest_length(myself->indigest));
-		if(!to->indigest)
+		if(!to->indigest) {
+			logger(DEBUG_ALWAYS, LOG_ERR, "send_ans_key(): indigest not set - aborting!");
 			abort();
-		if(!digest_set_key(to->indigest, key, keylen))
+		}
+		if(!digest_set_key(to->indigest, key, keylen)) {
+			logger(DEBUG_ALWAYS, LOG_ERR, "send_ans_key(): digest_set_key() failed - aborting!");
 			abort();
+		}
 	}
 
 	to->incompression = myself->incompression;

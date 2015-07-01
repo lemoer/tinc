@@ -873,8 +873,10 @@ bool receive_sptps_record(void *handle, uint8_t type, const void *data, uint16_t
 		} else {
 			inpkt.len = ulen + offset;
 		}
-		if(inpkt.len > MAXSIZE)
+		if(inpkt.len > MAXSIZE) {
+			logger(DEBUG_ALWAYS, LOG_ERR, "receive_sptps_record(): inpkt.len > MAXSIZE. aborting!");
 			abort();
+		}
 	} else {
 		memcpy(DATA(&inpkt) + offset, data, len);
 		inpkt.len = len + offset;

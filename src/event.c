@@ -19,6 +19,7 @@
 
 #include "system.h"
 
+#include "logger.h"
 #include "dropin.h"
 #include "event.h"
 #include "net.h"
@@ -85,8 +86,10 @@ void io_add(io_t *io, io_cb_t cb, void *data, int fd, int flags) {
 
 	io_set(io, flags);
 
-	if(!splay_insert_node(&io_tree, &io->node))
+	if(!splay_insert_node(&io_tree, &io->node)) {
+		logger(DEBUG_ALWAYS, LOG_ERR, "io_add(): could not insert node into io_tree. aborting!");
 		abort();
+	}
 }
 
 #ifdef HAVE_MINGW
@@ -156,8 +159,10 @@ void timeout_set(timeout_t *timeout, struct timeval *tv) {
 
 	timeradd(&now, tv, &timeout->tv);
 
-	if(!splay_insert_node(&timeout_tree, &timeout->node))
+	if(!splay_insert_node(&timeout_tree, &timeout->node)) {
+		logger(DEBUG_ALWAYS, LOG_ERR, "timeout_set(): could not insert node into timeout_tree. aborting!");
 		abort();
+	}
 }
 
 void timeout_del(timeout_t *timeout) {
@@ -212,8 +217,10 @@ void signal_add(signal_t *sig, signal_cb_t cb, void *data, int signum) {
 
 	signal(sig->signum, signal_handler);
 
-	if(!splay_insert_node(&signal_tree, &sig->node))
+	if(!splay_insert_node(&signal_tree, &sig->node)) {
+		logger(DEBUG_ALWAYS, LOG_ERR, "signal_add(): could not insert node into signal_tree. aborting!");
 		abort();
+	}
 }
 
 void signal_del(signal_t *sig) {

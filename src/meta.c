@@ -268,7 +268,7 @@ bool receive_meta(connection_t *c) {
 							return false;
 						}
 					} else {
-						logger(DEBUG_CONNECTIONS, LOG_ERR, "c->tcplen set but c->node is NULL!");
+						logger(DEBUG_ALWAYS, LOG_ERR, "c->tcplen set but c->node is NULL!");
 						abort();
 					}
 				} else {
