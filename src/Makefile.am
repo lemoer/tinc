@@ -186,9 +186,9 @@ sptps_speed_SOURCES = \
 
 tincd_LDADD = libtincd.la libed25519.la libchacha_poly1305.la libtincconf.la
 tinc_LDADD = $(READLINE_LIBS) $(CURSES_LIBS) libtincd.la libtincconf.la libed25519.la libchacha_poly1305.la
-sptps_speed_LDADD = libtincd.la libed25519.la libtincconf.la libchacha_poly1305.la
-sptps_test_LDADD = libtincd.la libed25519.la libtincconf.la libchacha_poly1305.la
-sptps_keypair_LDADD = libed25519.la libtincconf.la libchacha_poly1305.la libtincd.la
+sptps_speed_LDADD = libtincd.la libed25519.la libtincconf.la libchacha_poly1305.la libchacha_poly1305.la
+sptps_test_LDADD = libtincd.la libed25519.la libtincconf.la libchacha_poly1305.la libchacha_poly1305.la
+sptps_keypair_LDADD = libed25519.la libtincconf.la libchacha_poly1305.la libtincd.la libchacha_poly1305.la
 
 if !DARWIN
 sptps_speed_LDADD += -lrt
