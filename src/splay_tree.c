@@ -249,6 +249,8 @@ splay_tree_t *splay_alloc_tree(splay_compare_t compare, splay_action_t delete) {
 }
 
 void splay_free_tree(splay_tree_t *tree) {
+	if (tree->count != 0)
+		abort();
 	free(tree);
 }
 
