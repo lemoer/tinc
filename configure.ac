@@ -40,6 +40,7 @@ case $host_os in
   ;;
   *darwin*)
     bsd=true
+    darwin=true
     AC_DEFINE(HAVE_DARWIN, 1, [Darwin (MacOS/X)])
   ;;
   *solaris*)
@@ -120,6 +121,7 @@ AC_ARG_WITH(windows2000,
 
 AM_CONDITIONAL(LINUX, test "$linux" = true)
 AM_CONDITIONAL(BSD, test "$bsd" = true)
+AM_CONDITIONAL(DARWIN, test "$darwin" = true)
 AM_CONDITIONAL(SOLARIS, test "$solaris" = true)
 AM_CONDITIONAL(MINGW, test "$mingw" = true)
 AM_CONDITIONAL(CYGWIN, test "$cygwin" = true)

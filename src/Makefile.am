@@ -36,11 +36,12 @@ libed25519_la_SOURCES = \
 	ed25519/verify.c
 
 libtincconf_la_SOURCES = \
-	conf.h
+	conf.h\
+	conf.c
 
 libtincd_la_SOURCES = \
-  conf.h \
-  conf.c \
+	conf.h \
+	conf.c \
 	buffer.c buffer.h \
 	cipher.h \
 	connection.c connection.h \
@@ -185,9 +186,15 @@ sptps_speed_SOURCES = \
 
 tincd_LDADD = libtincd.la libed25519.la libchacha_poly1305.la libtincconf.la
 tinc_LDADD = $(READLINE_LIBS) $(CURSES_LIBS) libtincd.la libtincconf.la libed25519.la libchacha_poly1305.la
-sptps_speed_LDADD = -lrt libtincd.la libed25519.la libtincconf.la libchacha_poly1305.la
-sptps_test_LDADD = -lrt libtincd.la libed25519.la libtincconf.la libchacha_poly1305.la
-sptps_keypair_LDADD = -lrt libed25519.la libtincconf.la libchacha_poly1305.la libtincd.la
+sptps_speed_LDADD = libtincd.la libed25519.la libtincconf.la libchacha_poly1305.la
+sptps_test_LDADD = libtincd.la libed25519.la libtincconf.la libchacha_poly1305.la
+sptps_keypair_LDADD = libed25519.la libtincconf.la libchacha_poly1305.la libtincd.la
+
+if !DARWIN
+sptps_speed_LDADD += -lrt
+sptps_test_LDADD += -lrt
+sptps_keypair_LDADD += -lrt
+endif
 
 LIBS = @LIBS@ -lm
 
