@@ -43,7 +43,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #endif
 
 #include <stdio.h>
-
 #ifdef HAVE_STRING_H
 #include <string.h>
 #endif
@@ -445,7 +444,8 @@ _getopt_initialize (argc, argv, optstring)
   else
     nonoption_flags_len = 0;
 #endif
-
+ 	(void)argc;
+	(void)argv;
   return optstring;
 }
 
