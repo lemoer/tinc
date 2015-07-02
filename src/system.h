@@ -43,4 +43,6 @@ typedef int bool;
 typedef int socklen_t;
 #endif
 
+#define UNUSED(n) (void)(n);
+
 #endif /* __TINC_SYSTEM_H__ */
