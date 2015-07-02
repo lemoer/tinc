@@ -39,6 +39,24 @@
 #include "node.h"
 #include "xalloc.h"
 
+/*
+   connection tests
+*/
+static int connection_setup(void **state) {
+  UNUSED(state);
+  init_connections();
+  return 0;
+}
+
+static int connection_teardown(void **state) {
+  UNUSED(state);
+  exit_connections();
+  return 0;
+}
+
+static void test_connection_init(void **state) {
+  UNUSED(state);
+}
 
 /*
    node tests
@@ -295,6 +313,8 @@ static void test_config_add_item_no_filename(void **state) {
 
 int main(void) {
   const struct CMUnitTest tests[] = {
+    // connection tests
+    cmocka_unit_test_setup_teardown(test_connection_init, connection_setup, connection_teardown),
     // node tests
     cmocka_unit_test_setup_teardown(test_node_init, node_setup, node_teardown),
     // edge tests
