@@ -30,11 +30,16 @@
 
 static bool send_data(void *handle, uint8_t type, const void *data, size_t len) {
 	int fd = *(int *)handle;
+	UNUSED(type);
 	send(fd, data, len, 0);
 	return true;
 }
 
 static bool receive_record(void *handle, uint8_t type, const void *data, uint16_t len) {
+	UNUSED(handle);
+	UNUSED(type);
+	UNUSED(data);
+	UNUSED(len);
 	return true;
 }
 

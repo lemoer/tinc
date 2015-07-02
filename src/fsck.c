@@ -74,6 +74,7 @@ static int strtailcmp(const char *str, const char *tail) {
 
 static void check_conffile(const char *fname, bool server) {
 	FILE *f = fopen(fname, "r");
+	UNUSED(server);
 	if(!f) {
 		fprintf(stderr, "ERROR: cannot read %s: %s\n", fname, strerror(errno));
 		return;
@@ -468,7 +469,7 @@ int fsck(const char *argv0) {
 		}
 	}
 	closedir(dir);
-	
+
 	// Check for obsolete / unsafe / unknown configuration variables.
 
 	check_conffile(tinc_conf, true);
@@ -487,4 +488,3 @@ int fsck(const char *argv0) {
 
 	return 0;
 }
-

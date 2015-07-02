@@ -91,6 +91,8 @@ bool send_termreq(connection_t *c) {
 }
 
 bool termreq_h(connection_t *c, const char *request) {
+	UNUSED(c);
+	UNUSED(request);
 	return false;
 }
 

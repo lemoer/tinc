@@ -36,10 +36,12 @@ static void close_device(void) {
 }
 
 static bool read_packet(vpn_packet_t *packet) {
+	UNUSED(packet);
 	return false;
 }
 
 static bool write_packet(vpn_packet_t *packet) {
+	UNUSED(packet);
 	return true;
 }
 

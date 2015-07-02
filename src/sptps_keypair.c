@@ -30,6 +30,8 @@ static char *program_name;
 
 void logger(int level, int priority, const char *format, ...) {
 	va_list ap;
+	UNUSED(level);
+	UNUSED(priority);
 	va_start(ap, format);
 	vfprintf(stderr, format, ap);
 	va_end(ap);
@@ -86,7 +88,7 @@ int main(int argc, char *argv[]) {
 	ecdsa_t *key = ecdsa_generate();
 	if(!key)
 		return 1;
-	
+
 	FILE *fp = fopen(argv[1], "w");
 	if(fp) {
 		if(!ecdsa_write_pem_private_key(key, fp)) {

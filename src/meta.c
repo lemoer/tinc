@@ -36,6 +36,7 @@
 
 bool send_meta_sptps(void *handle, uint8_t type, const void *buffer, size_t length) {
 	connection_t *c = handle;
+	UNUSED(type);
 
 	if(!c) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "send_meta_sptps() called with NULL pointer!");

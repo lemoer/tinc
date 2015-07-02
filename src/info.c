@@ -29,6 +29,8 @@
 #include "logger.h"
 
 void logger(int level, int priority, const char *format, ...) {
+	UNUSED(level);
+	UNUSED(priority);
 	va_list ap;
 	va_start(ap, format);
 	vfprintf(stderr, format, ap);

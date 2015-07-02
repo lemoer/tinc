@@ -1401,6 +1401,7 @@ void handle_incoming_vpn_data(void *data, int flags) {
 	socklen_t addrlen = sizeof addr;
 	node_t *from, *to;
 	bool direct = false;
+	UNUSED(flags);
 
 	pkt.offset = 0;
 	int len = recvfrom(ls->udp.fd, DATA(&pkt), MAXSIZE, 0, &addr.sa, &addrlen);
@@ -1515,6 +1516,8 @@ skip_harder:
 
 void handle_device_data(void *data, int flags) {
 	vpn_packet_t packet;
+	UNUSED(data);
+	UNUSED(flags);
 	packet.offset = DEFAULT_PACKET_OFFSET;
 	packet.priority = 0;
 

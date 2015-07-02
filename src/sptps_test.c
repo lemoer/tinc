@@ -30,7 +30,6 @@
 #include "sptps.h"
 #include "utils.h"
 
-
 static bool verbose;
 static bool readonly;
 static bool writeonly;
@@ -39,6 +38,7 @@ static int out = 1;
 
 static bool send_data(void *handle, uint8_t type, const void *data, size_t len) {
 	char hex[len * 2 + 1];
+	UNUSED(type);
 	bin2hex(data, hex, len);
 	if(verbose)
 		fprintf(stderr, "Sending %d bytes of data:\n%s\n", (int)len, hex);
@@ -49,6 +49,7 @@ static bool send_data(void *handle, uint8_t type, const void *data, size_t len) 
 }
 
 static bool receive_record(void *handle, uint8_t type, const void *data, uint16_t len) {
+	UNUSED(handle);
 	if(verbose)
 		fprintf(stderr, "Received type %d record of %hu bytes:\n", type, len);
 	if(!writeonly)

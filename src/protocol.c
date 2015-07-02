@@ -163,6 +163,7 @@ static timeout_t past_request_timeout;
 
 static void age_past_requests(void *data) {
 	int left = 0, deleted = 0;
+	UNUSED(data);
 
 	for splay_each(past_request_t, p, past_request_tree) {
 		if(p->firstseen + pinginterval <= now.tv_sec)

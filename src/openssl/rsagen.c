@@ -31,6 +31,7 @@ typedef RSA rsa_t;
 /* This function prettyprints the key generation process */
 
 static void indicator(int a, int b, void *p) {
+	UNUSED(p);
 	switch (a) {
 		case 0:
 			fprintf(stderr, ".");

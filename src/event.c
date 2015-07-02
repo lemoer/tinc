@@ -190,6 +190,8 @@ static void signal_handler(int signum) {
 
 static void signalio_handler(void *data, int flags) {
 	unsigned char signum;
+	UNUSED(data);
+	UNUSED(flags);
 	if(read(pipefd[0], &signum, 1) != 1)
 		return;
 

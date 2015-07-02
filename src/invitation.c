@@ -776,6 +776,8 @@ ask_netname:
 
 
 static bool invitation_send(void *handle, uint8_t type, const void *data, size_t len) {
+	UNUSED(handle);
+	UNUSED(type);
 	while(len) {
 		int result = send(sock, data, len, 0);
 		if(result == -1 && errno == EINTR)
@@ -789,6 +791,8 @@ static bool invitation_send(void *handle, uint8_t type, const void *data, size_t
 }
 
 static bool invitation_receive(void *handle, uint8_t type, const void *msg, uint16_t len) {
+	UNUSED(handle);
+	UNUSED(type);
 	switch(type) {
 		case SPTPS_HANDSHAKE:
 			return sptps_send_record(&sptps, 0, cookie, sizeof cookie);

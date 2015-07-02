@@ -155,6 +155,7 @@ bool send_id(connection_t *c) {
 }
 
 static bool finalize_invitation(connection_t *c, const char *data, uint16_t len) {
+	UNUSED(len);
 	if(strchr(data, '\n')) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "Received invalid key from invited node %s (%s)!\n", c->name, c->hostname);
 		return false;

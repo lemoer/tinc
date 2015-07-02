@@ -129,6 +129,7 @@ ecdsa_t *ecdsa_read_pem_private_key(FILE *fp) {
 }
 
 size_t ecdsa_size(ecdsa_t *ecdsa) {
+	UNUSED(ecdsa);
 	return 64;
 }
 

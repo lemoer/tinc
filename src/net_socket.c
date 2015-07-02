@@ -635,6 +635,7 @@ void handle_new_meta_connection(void *data, int flags) {
 	sockaddr_t sa;
 	int fd;
 	socklen_t len = sizeof sa;
+	UNUSED(flags);
 
 	fd = accept(l->tcp.fd, &sa.sa, &len);
 
@@ -732,6 +733,7 @@ void handle_new_unix_connection(void *data, int flags) {
 	sockaddr_t sa;
 	int fd;
 	socklen_t len = sizeof sa;
+	UNUSED(flags);
 
 	fd = accept(io->fd, &sa.sa, &len);
 

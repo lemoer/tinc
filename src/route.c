@@ -193,6 +193,7 @@ static void swap_mac_addresses(vpn_packet_t *packet) {
 
 static void age_subnets(void *data) {
 	bool left = false;
+	UNUSED(data);
 
 	for splay_each(subnet_t, s, myself->subnet_tree) {
 		if(s->expires && s->expires < now.tv_sec) {

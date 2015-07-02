@@ -95,6 +95,7 @@ static bool send_sptps_data_myself(void *handle, uint8_t type, const void *data,
 
 static bool send_initial_sptps_data(void *handle, uint8_t type, const void *data, size_t len) {
 	node_t *to = handle;
+	UNUSED(type);
 	to->sptps.send_data = send_sptps_data_myself;
 	char buf[len * 4 / 3 + 5];
 	b64encode(data, buf, len);
@@ -125,6 +126,7 @@ bool send_req_key(node_t *to) {
 /* REQ_KEY is overloaded to allow arbitrary requests to be routed between two nodes. */
 
 static bool req_key_ext_h(connection_t *c, const char *request, node_t *from, node_t *to, int reqno) {
+	UNUSED(c);
 	/* If this is a SPTPS packet, see if sending UDP info helps.
 	   Note that we only do this if we're the destination or the static relay;
 	   otherwise every hop would initiate its own UDP info message, resulting in elevated chatter. */

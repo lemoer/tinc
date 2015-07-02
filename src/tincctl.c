@@ -924,6 +924,7 @@ static int cmd_start(int argc, char *argv[]) {
 }
 
 static int cmd_stop(int argc, char *argv[]) {
+	UNUSED(argv);
 	if(argc > 1) {
 		fprintf(stderr, "Too many arguments!\n");
 		return 1;
@@ -967,6 +968,7 @@ static int cmd_restart(int argc, char *argv[]) {
 }
 
 static int cmd_reload(int argc, char *argv[]) {
+	UNUSED(argv);
 	if(argc > 1) {
 		fprintf(stderr, "Too many arguments!\n");
 		return 1;
@@ -1209,6 +1211,7 @@ static int cmd_dump(int argc, char *argv[]) {
 }
 
 static int cmd_purge(int argc, char *argv[]) {
+	UNUSED(argv);
 	if(argc > 1) {
 		fprintf(stderr, "Too many arguments!\n");
 		return 1;
@@ -1249,6 +1252,7 @@ static int cmd_debug(int argc, char *argv[]) {
 }
 
 static int cmd_retry(int argc, char *argv[]) {
+	UNUSED(argv);
 	if(argc > 1) {
 		fprintf(stderr, "Too many arguments!\n");
 		return 1;
@@ -1313,6 +1317,7 @@ static int cmd_disconnect(int argc, char *argv[]) {
 }
 
 static int cmd_top(int argc, char *argv[]) {
+	UNUSED(argv);
 	if(argc > 1) {
 		fprintf(stderr, "Too many arguments!\n");
 		return 1;
@@ -1345,6 +1350,7 @@ static int cmd_pcap(int argc, char *argv[]) {
 
 #ifdef SIGINT
 static void sigint_handler(int sig) {
+	UNUSED(sig);
 	fprintf(stderr, "\n");
 	shutdown(fd, SHUT_RDWR);
 }
@@ -1375,6 +1381,7 @@ static int cmd_log(int argc, char *argv[]) {
 }
 
 static int cmd_pid(int argc, char *argv[]) {
+	UNUSED(argv);
 	if(argc > 1) {
 		fprintf(stderr, "Too many arguments!\n");
 		return 1;
@@ -1991,6 +1998,7 @@ static int cmd_generate_rsa_keys(int argc, char *argv[]) {
 #endif
 
 static int cmd_generate_ed25519_keys(int argc, char *argv[]) {
+	UNUSED(argv);
 	if(argc > 1) {
 		fprintf(stderr, "Too many arguments!\n");
 		return 1;
@@ -2003,11 +2011,14 @@ static int cmd_generate_ed25519_keys(int argc, char *argv[]) {
 }
 
 static int cmd_help(int argc, char *argv[]) {
+	UNUSED(argc);
+	UNUSED(argv);
 	usage(false);
 	return 0;
 }
 
 static int cmd_version(int argc, char *argv[]) {
+	UNUSED(argv);
 	if(argc > 1) {
 		fprintf(stderr, "Too many arguments!\n");
 		return 1;
@@ -2116,6 +2127,7 @@ static int export(const char *name, FILE *out) {
 }
 
 static int cmd_export(int argc, char *argv[]) {
+	UNUSED(argv);
 	if(argc > 1) {
 		fprintf(stderr, "Too many arguments!\n");
 		return 1;
@@ -2134,6 +2146,7 @@ static int cmd_export(int argc, char *argv[]) {
 }
 
 static int cmd_export_all(int argc, char *argv[]) {
+	UNUSED(argv);
 	if(argc > 1) {
 		fprintf(stderr, "Too many arguments!\n");
 		return 1;
@@ -2168,6 +2181,7 @@ static int cmd_export_all(int argc, char *argv[]) {
 }
 
 static int cmd_import(int argc, char *argv[]) {
+	UNUSED(argv);
 	if(argc > 1) {
 		fprintf(stderr, "Too many arguments!\n");
 		return 1;
@@ -2287,8 +2301,8 @@ static int cmd_network(int argc, char *argv[]) {
 	DIR *dir = opendir(confdir);
 	if(!dir) {
 		fprintf(stderr, "Could not read directory %s: %s\n", confdir, strerror(errno));
-                return 1;
-        }
+		return 1;
+	}
 
 	struct dirent *ent;
 	while((ent = readdir(dir))) {
@@ -2312,6 +2326,7 @@ static int cmd_network(int argc, char *argv[]) {
 }
 
 static int cmd_fsck(int argc, char *argv[]) {
+	UNUSED(argv);
 	if(argc > 1) {
 		fprintf(stderr, "Too many arguments!\n");
 		return 1;
@@ -2464,11 +2479,14 @@ static char *complete_info(const char *text, int state) {
 }
 
 static char *complete_nothing(const char *text, int state) {
+	UNUSED(text);
+	UNUSED(state);
 	return NULL;
 }
 
 static char **completion (const char *text, int start, int end) {
 	char **matches = NULL;
+	UNUSED(end);
 
 	if(!start)
 		matches = rl_completion_matches(text, complete_command);

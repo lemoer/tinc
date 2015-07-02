@@ -52,9 +52,16 @@ unsigned int sptps_replaywin = 16;
 */
 
 void sptps_log_quiet(sptps_t *s, int s_errno, const char *format, va_list ap) {
+	UNUSED(s);
+	UNUSED(s_errno);
+	UNUSED(format);
+	UNUSED(ap);
 }
 
 void sptps_log_stderr(sptps_t *s, int s_errno, const char *format, va_list ap) {
+	UNUSED(s);
+	UNUSED(s_errno);
+
 	vfprintf(stderr, format, ap);
 	fputc('\n', stderr);
 }
@@ -230,6 +237,7 @@ static bool send_ack(sptps_t *s) {
 
 // Receive an ACKnowledgement record.
 static bool receive_ack(sptps_t *s, const char *data, uint16_t len) {
+	UNUSED(data);
 	if(len)
 		return error(s, EIO, "Invalid ACK record length");
 
