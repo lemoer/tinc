@@ -36,45 +36,94 @@
 #include "splay_tree.h"
 #include "conf.h"
 #include "edge.h"
+#include "node.h"
 #include "xalloc.h"
+
+
+/*
+   node tests
+*/
+static int node_setup(void **state) {
+  UNUSED(state);
+  init_nodes();
+  return 0;
+}
+
+static int node_teardown(void **state) {
+  UNUSED(state);
+  return 0;
+}
+
+static void test_node_init(void **state) {
+  node_t *n1, *n2;
+  UNUSED(state);
+  n1 = new_node();
+  assert_non_null(n1);
+  n2 = new_node();
+  assert_non_null(n2);
+}
 
 /*
    edge tests
 */
 static int edge_setup(void **state) {
-  splay_tree_t *edge_tree;
-  edge_tree = new_edge_tree();
-  *state = edge_tree;
+  UNUSED(state);
+  init_edges();
   return 0;
 }
 
 static int edge_teardown(void **state) {
-  splay_tree_t *edge_tree = *state;
-  splay_delete_tree(edge_tree);
+  UNUSED(state);
+  exit_edges();
   return 0;
 }
 
 
 static void test_edge_init(void **state) {
-  splay_tree_t *edge_tree = *state;
+  UNUSED(state);
   edge_t *e1, *e2;
+  node_t *n1, *n2;
 
-  assert_non_null(edge_tree);
   e1 = new_edge();
   assert_non_null(e1);
+  assert_null(e1->from);
+  assert_null(e1->to);
+
+  init_nodes();
+
+  n1 = new_node();
+  n2 = new_node();
+
+  assert_null(n1->name);
+  assert_null(n2->name);
+
+  n1->name = xstrdup("node1");
+  n2->name = xstrdup("node2");
+
+  e1->from = n1;
+  e1->to = n2;
+
   //TODO: make edge_add work on any edge_tree
-  //edge_add(edge_tree, e1);
+  // edge_add needs from and to to be set
 
-  e2 = clone_edge(e1);
-  assert_non_null(e2);
+  //e2 = clone_edge(e1);
+  e2 = new_edge();
 
-  //edge_add(edge_tree, e2);
+  e2->from = n2;
+  e2->to = n1;
 
-  assert_int_equal(edge_tree->count, 2);
+  assert_ptr_not_equal(e1, e2);
+
+  edge_add(e1);
+  edge_add(e2);
+
+  assert_int_equal(edge_weight_tree->count, 2);
 
   //TODO: make edge_del work on any edge_tree
-  //edge_del(edge_tree, e2);
-  assert_int_equal(edge_tree->count, 1);
+  edge_del(e1);
+  assert_int_equal(edge_weight_tree->count, 1);
+
+  exit_nodes();
 
 }
 
@@ -246,6 +295,8 @@ static void test_config_add_item_no_filename(void **state) {
 
 int main(void) {
   const struct CMUnitTest tests[] = {
+    // node tests
+    cmocka_unit_test_setup_teardown(test_node_init, node_setup, node_teardown),
     // edge tests
     cmocka_unit_test_setup_teardown(test_edge_init, edge_setup, edge_teardown),
     // config tests
