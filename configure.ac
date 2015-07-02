@@ -156,6 +156,8 @@ dnl   AX_CHECK_COMPILE_FLAG([-fno-strict-overflow], [CPPFLAGS="$CPPFLAGS -fno-st
    AX_CHECK_COMPILE_FLAG([-Werror=uninitialized], [CFLAGS="$CFLAGS -Werror=uninitialized"])
    AX_CHECK_COMPILE_FLAG([-Werror=missing-field-initializers], [CFLAGS="$CFLAGS -Werror=missing-field-initializers"])
    AX_CHECK_COMPILE_FLAG([-Werror=missing-variable-declarations], [CFLAGS="$CFLAGS -Werror=missing-variable-declarations"])
+   AX_CHECK_COMPILE_FLAG([-Werror=missing-prototypes], [CFLAGS="$CFLAGS -Werror=missing-prototypes"])
+
    AX_CHECK_COMPILE_FLAG([-Wno-conversion], [CFLAGS="$CFLAGS -Wno-conversion"])
    AX_CHECK_COMPILE_FLAG([-Wno-date-time], [CFLAGS="$CFLAGS -Wno-date-time"])
    AX_CHECK_COMPILE_FLAG([-Wno-shadow], [CFLAGS="$CFLAGS -Wno-shadow"])

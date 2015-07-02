@@ -20,8 +20,8 @@
 #ifndef __TINC_CRYPTO_H__
 #define __TINC_CRYPTO_H__
 
-extern void crypto_init();
-extern void crypto_exit();
+extern void crypto_init(void);
+extern void crypto_exit(void);
 extern void randomize(void *, size_t);
 
 #endif

@@ -25,6 +25,7 @@ typedef struct rsa rsa_t;
 #endif
 
 extern void rsa_free(rsa_t *rsa);
+extern bool rsa_active(rsa_t *rsa);
 extern rsa_t *rsa_set_hex_public_key(char *n, char *e) __attribute__ ((__malloc__));
 extern rsa_t *rsa_set_hex_private_key(char *n, char *e, char *d) __attribute__ ((__malloc__));
 extern rsa_t *rsa_read_pem_public_key(FILE *fp) __attribute__ ((__malloc__));

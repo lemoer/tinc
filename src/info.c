@@ -26,6 +26,7 @@
 #include "info.h"
 #include "utils.h"
 #include "xalloc.h"
+#include "logger.h"
 
 void logger(int level, int priority, const char *format, ...) {
 	va_list ap;

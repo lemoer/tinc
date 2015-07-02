@@ -20,8 +20,8 @@
 #ifndef __TINC_CONTROL_H__
 #define __TINC_CONTROL_H__
 
-extern bool init_control();
-extern void exit_control();
+extern bool init_control(void);
+extern void exit_control(void);
 extern char controlcookie[];
 
 #endif

@@ -79,7 +79,7 @@ static void scan_for_hostname(const char *filename, char **hostname, char **port
 	fclose(f);
 }
 
-char *get_my_hostname() {
+char *get_my_hostname(void) {
 	char *hostname = NULL;
 	char *port = NULL;
 	char *hostport = NULL;

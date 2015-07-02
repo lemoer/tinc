@@ -23,6 +23,7 @@
 
 #include "crypto.h"
 #include "ecdsagen.h"
+#include "logger.h"
 #include "utils.h"
 
 static char *program_name;

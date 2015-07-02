@@ -20,6 +20,7 @@
 #ifndef __TINC_INVITATION_H__
 #define __TINC_INVITATION_H__
 
+char *get_my_hostname(void);
 bool recvdata(int fd, char *data, size_t len);
 int cmd_invite(int argc, char *argv[]);
 int cmd_join(int argc, char *argv[]);
