@@ -30,13 +30,9 @@
 #include "sptps.h"
 #include "utils.h"
 
-// Symbols necessary to link with logger.o
-bool send_request(void *c, const char *msg, ...) { return false; }
-static struct list_t *connection_list = NULL;
-bool send_meta(void *c, const char *msg , int len) { return false; }
+
 static char *logfilename = NULL;
 static bool do_detach = false;
-static struct timeval now;
 
 static bool verbose;
 static bool readonly;
