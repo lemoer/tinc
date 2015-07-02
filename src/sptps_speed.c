@@ -28,11 +28,6 @@
 #include "ecdsagen.h"
 #include "sptps.h"
 
-static struct list_t *connection_list = NULL;
-static char *logfilename = NULL;
-static bool do_detach = false;
-static struct timeval now;
-
 static bool send_data(void *handle, uint8_t type, const void *data, size_t len) {
 	int fd = *(int *)handle;
 	send(fd, data, len, 0);

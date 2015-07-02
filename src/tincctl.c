@@ -70,7 +70,6 @@ static int result;
 bool force = false;
 bool tty = true;
 bool confbasegiven = false;
-static bool netnamegiven = false;
 char *scriptinterpreter = NULL;
 char *scriptextension = "";
 static char *prompt;

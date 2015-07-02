@@ -31,9 +31,6 @@
 #include "utils.h"
 
 
-static char *logfilename = NULL;
-static bool do_detach = false;
-
 static bool verbose;
 static bool readonly;
 static bool writeonly;
