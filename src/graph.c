@@ -92,6 +92,17 @@ static void mst_kruskal(void) {
 	bool skipped = false;
 
 	for splay_each(edge_t, e, edge_weight_tree) {
+			if (!e->from) {
+				logger(DEBUG_ALWAYS, LOG_ERR, "current edge doesn't have from! - should abort");
+				skipped = true;
+				continue;
+			}
+			if (!e->to) {
+				logger(DEBUG_ALWAYS, LOG_ERR, "current edge doesn't have to! - should abort");
+				skipped = true;
+				continue;
+			}
+
 		if(!e->reverse || (e->from->status.visited == e->to->status.visited)) {
 			skipped = true;
 			continue;
