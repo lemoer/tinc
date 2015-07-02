@@ -6,6 +6,8 @@ Makefile.in
 *.a
 /config.*
 /src/tincd
+/src/tinc
+.libs/
 /autom4te.cache
 /aclocal.m4
 /compile
@@ -13,6 +15,7 @@ Makefile.in
 /depcomp
 /install-sh
 /missing
+/m4/
 INSTALL
 .deps
 .dir-locals.el
