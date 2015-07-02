@@ -1063,7 +1063,7 @@ static length_t choose_initial_maxmtu(node_t *n) {
 	return mtu;
 
 #else
-
+	UNUSED(n);
 	return MTU;
 
 #endif
