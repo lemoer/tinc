@@ -112,6 +112,17 @@ AC_ARG_ENABLE(tunemu,
   [tunemu=false]
 )
 
+AC_ARG_ENABLE(devel,
+  AS_HELP_STRING([--enable-devel], [enable compiler warnings/errors for developement]),
+  [ AS_IF([test "x$enable_devel" = "xyes"],
+      [ AC_DEFINE(ENABLE_DEVEL, 1, [Support for devel])
+        devel=true
+      ],
+      [devel=false])
+  ],
+  [devel=false]
+)
+
 AC_ARG_WITH(windows2000,
   AS_HELP_STRING([--with-windows2000], [compile with support for Windows 2000. This disables support for tunneling over existing IPv6 networks.]),
   [ AS_IF([test "x$with_windows2000" = "xyes"],
@@ -142,6 +153,16 @@ dnl Compiler hardening flags
 dnl No -fstack-protector-all because it doesn't work on all platforms or architectures.
 
 AC_ARG_ENABLE([hardening], AS_HELP_STRING([--disable-hardening], [disable compiler and linker hardening flags]))
+AS_IF([test "x$enable_devel" == "xyes"],
+   [AX_CHECK_COMPILE_FLAG([-Werror=conditional-uninitialized], [CFLAGS="$CFLAGS -Werror=conditional-uninitialized"])
+   AX_CHECK_COMPILE_FLAG([-Werror=uninitialized], [CFLAGS="$CFLAGS -Werror=uninitialized"])
+   AX_CHECK_COMPILE_FLAG([-Werror=unused-variable], [CFLAGS="$CFLAGS -Werror=unused-variable"])
+   AX_CHECK_COMPILE_FLAG([-Werror=unused-parameter], [CFLAGS="$CFLAGS -Werror=unused-parameter"])
+   AX_CHECK_COMPILE_FLAG([-Werror=missing-field-initializers], [CFLAGS="$CFLAGS -Werror=missing-field-initializers"])
+   AX_CHECK_COMPILE_FLAG([-Werror=missing-variable-declarations], [CFLAGS="$CFLAGS -Werror=missing-variable-declarations"])
+   AX_CHECK_COMPILE_FLAG([-Werror=missing-prototypes], [CFLAGS="$CFLAGS -Werror=missing-prototypes"])
+])
+
 AS_IF([test "x$enable_hardening" != "xno"],
   [AX_CHECK_COMPILE_FLAG([-DFORTIFY_SOURCE=2], [CPPFLAGS="$CPPFLAGS -DFORTIFY_SOURCE=2"])
 dnl   AX_CHECK_COMPILE_FLAG([-fno-strict-overflow], [CPPFLAGS="$CPPFLAGS -fno-strict-overflow"])
@@ -150,22 +171,14 @@ dnl   AX_CHECK_COMPILE_FLAG([-fno-strict-overflow], [CPPFLAGS="$CPPFLAGS -fno-st
    AX_CHECK_COMPILE_FLAG([-Wno-reserved-id-macro], [CFLAGS="$CFLAGS -Wno-reserved-id-macro"])
    AX_CHECK_COMPILE_FLAG([-Wno-padded], [CFLAGS="$CFLAGS -Wno-padded"])
    AX_CHECK_COMPILE_FLAG([-Wno-disabled-macro-expansion], [CFLAGS="$CFLAGS -Wno-disabled-macro-expansion"])
-   AX_CHECK_COMPILE_FLAG([-Wno-shorten-64-to-32], [CFLAGS="$CFLAGS -Wno-shorten-64-to-32"])
+dnl   AX_CHECK_COMPILE_FLAG([-Werror=shorten-64-to-32], [CFLAGS="$CFLAGS -Werror=shorten-64-to-32"])
    AX_CHECK_COMPILE_FLAG([-Wno-format-nonliteral], [CFLAGS="$CFLAGS -Wno-format-nonliteral"])
-   AX_CHECK_COMPILE_FLAG([-Werror=conditional-uninitialized], [CFLAGS="$CFLAGS -Werror=conditional-uninitialized"])
-   AX_CHECK_COMPILE_FLAG([-Werror=uninitialized], [CFLAGS="$CFLAGS -Werror=uninitialized"])
-   AX_CHECK_COMPILE_FLAG([-Werror=unused-variable], [CFLAGS="$CFLAGS -Werror=unused-variable"])
-   AX_CHECK_COMPILE_FLAG([-Werror=unused-parameter], [CFLAGS="$CFLAGS -Werror=unused-parameter"])
-   AX_CHECK_COMPILE_FLAG([-Werror=missing-field-initializers], [CFLAGS="$CFLAGS -Werror=missing-field-initializers"])
-   AX_CHECK_COMPILE_FLAG([-Werror=missing-variable-declarations], [CFLAGS="$CFLAGS -Werror=missing-variable-declarations"])
-   AX_CHECK_COMPILE_FLAG([-Werror=missing-prototypes], [CFLAGS="$CFLAGS -Werror=missing-prototypes"])
-
-   AX_CHECK_COMPILE_FLAG([-Wno-conversion], [CFLAGS="$CFLAGS -Wno-conversion"])
+dnl   AX_CHECK_COMPILE_FLAG([-Wno-conversion], [CFLAGS="$CFLAGS -Wno-conversion"])
    AX_CHECK_COMPILE_FLAG([-Wno-date-time], [CFLAGS="$CFLAGS -Wno-date-time"])
    AX_CHECK_COMPILE_FLAG([-Wno-shadow], [CFLAGS="$CFLAGS -Wno-shadow"])
    AX_CHECK_COMPILE_FLAG([-Wno-vla], [CFLAGS="$CFLAGS -Wno-vla"])
    AX_CHECK_COMPILE_FLAG([-Wno-unused-macros], [CFLAGS="$CFLAGS -Wno-unused-macros"])
-   AX_CHECK_COMPILE_FLAG([-Wno-cast-qual], [CFLAGS="$CFLAGS -Wno-cast-qual"])
+dnl   AX_CHECK_COMPILE_FLAG([-Wno-cast-qual], [CFLAGS="$CFLAGS -Wno-cast-qual"])
    case $host_os in
      *mingw*)
        AX_CHECK_LINK_FLAG([-Wl,--dynamicbase], [LDFLAGS="$LDFLAGS -Wl,--dynamicbase"])
