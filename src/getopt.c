@@ -445,7 +445,8 @@ _getopt_initialize (argc, argv, optstring)
   else
     nonoption_flags_len = 0;
 #endif
-
+	UNUSED(argc);
+	UNUSED(argv);
   return optstring;
 }
 
