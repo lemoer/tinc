@@ -135,6 +135,10 @@ static void sssp_bfs(void) {
 
 	/* Clear visited status on nodes */
 
+	if (!node_tree) {
+		logger(DEBUG_ALWAYS, LOG_ERR, "sssp_bfs(): node_tree == NULL. aborting!");
+		abort();
+	}
 	for splay_each(node_t, n, node_tree) {
 		n->status.visited = false;
 		n->status.indirect = true;
