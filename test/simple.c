@@ -36,8 +36,62 @@
 #include "splay_tree.h"
 #include "conf.h"
 #include "edge.h"
+#include "graph.h"
+#include "hash.h"
 #include "node.h"
 #include "xalloc.h"
+
+/*
+   hash tests
+*/
+static int hash_setup(void **state) {
+  UNUSED(state);
+  return 0;
+}
+
+static int hash_teardown(void **state) {
+  UNUSED(state);
+  return 0;
+}
+
+static void test_hash_init(void **state) {
+  UNUSED(state);
+  hash_t *h1 = NULL;
+  node_t *n1 = NULL, *n2 = NULL, *n3 = NULL;
+  h1 = hash_alloc(10, sizeof(node_t));
+  init_nodes();
+  n1 = new_node();
+  n1->name = xstrdup("node1");
+  n3 = new_node();
+  n3->name = xstrdup("node3");
+
+  assert_non_null(h1);
+  assert_int_equal(h1->n, 10);
+  assert_int_equal(h1->size, sizeof(node_t));
+  assert_non_null(h1->keys);
+  assert_non_null(h1->values);
+
+  hash_insert(h1, "node1", n1);
+  n2 = hash_search(h1, "node1");
+  assert_non_null(n2);
+  assert_ptr_equal(n1,n2);
+  hash_delete(h1, "node1");
+
+  n2 = hash_search(h1, "node1");
+  assert_null(n2);
+
+  hash_search_or_insert(h1, "node3", n3);
+
+  n2 = hash_search(h1, "node3");
+  assert_non_null(n2);
+  assert_ptr_equal(n3,n2);
+
+  hash_clear(h1);
+  assert_int_equal(*h1->values, 0x0);
+
+  hash_free(h1);
+
+}
 
 /*
    connection tests
@@ -56,6 +110,70 @@ static int connection_teardown(void **state) {
 
 static void test_connection_init(void **state) {
   UNUSED(state);
+  connection_t *c1;
+  c1 = new_connection();
+}
+
+static void test_connection_graph(void **state) {
+  UNUSED(state);
+  connection_t *c1;
+  edge_t *e1, *e2, *e3;
+  node_t *n1, *n2;
+
+  // grpah() needs nodes and edges
+  init_nodes();
+  init_edges();
+
+  e1 = new_edge();
+  e2 = new_edge();
+  e3 = new_edge();
+
+  myself = new_node();
+  myself->name = xstrdup("node1");
+
+  n1 = new_node();
+  n1->name = xstrdup("node2");
+
+  n2 = new_node();
+  n2->name = xstrdup("node3");
+
+  node_add(myself);
+  node_add(n1);
+  node_add(n2);
+
+  e1->from = myself;
+  e1->to = n1;
+
+  edge_add(e1);
+
+  e2->from = n1;
+  e2->to = n2;
+
+  edge_add(e2);
+
+  e3->from = n2;
+  e3->to = myself;
+
+  edge_add(e3);
+
+  c1 = new_connection();
+
+  assert_non_null(c1);
+  connection_add(c1);
+
+  graph();
+
+  edge_del(e2);
+  assert_null(e2);
+  e2->weight = 10;
+
+  edge_add(e2);
+  graph();
+
+  connection_del(c1);
+  exit_edges();
+  exit_nodes();
+
 }
 
 /*
@@ -313,8 +431,11 @@ static void test_config_add_item_no_filename(void **state) {
 
 int main(void) {
   const struct CMUnitTest tests[] = {
+    // hash tests
+    cmocka_unit_test_setup_teardown(test_hash_init, hash_setup, hash_teardown),
     // connection tests
     cmocka_unit_test_setup_teardown(test_connection_init, connection_setup, connection_teardown),
+    cmocka_unit_test_setup_teardown(test_connection_graph, connection_setup, connection_teardown),
     // node tests
     cmocka_unit_test_setup_teardown(test_node_init, node_setup, node_teardown),
     // edge tests
