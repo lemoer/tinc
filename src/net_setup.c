@@ -334,8 +334,11 @@ void update_edge_weight(void) {
 			if (c->status.control || !c->edge)
 				continue;
 
-			if (c->edge->avg_rtt) {
-
+			if (c->edge->avg_rtt && (c->edge->weight != c->edge->avg_rtt*10)) {
+				logger(DEBUG_STATUS, LOG_INFO, "update_edge_weight(): %s -> %s (%d -> %d)", c->edge->from->name,
+							 c->edge->to->name,
+							 c->edge->weight,
+							 c->edge->avg_rtt*10);
 				t = clone_edge(c->edge);
 				send_del_edge(c, c->edge);
 				edge_del(c->edge);
@@ -1002,8 +1005,6 @@ static bool setup_myself(void) {
 #endif
 		free(type);
 	}
-	if (type)
-		free(type);
 
 	get_config_bool(lookup_config(config_tree, "DeviceStandby"), &device_standby);
 
