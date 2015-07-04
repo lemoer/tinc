@@ -1000,6 +1000,7 @@ static bool setup_myself(void) {
 		else if(!strcasecmp(type, "vde"))
 			devops = vde_devops;
 #endif
+		free(type);
 	}
 	if (type)
 		free(type);

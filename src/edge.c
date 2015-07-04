@@ -83,6 +83,7 @@ edge_t *new_edge(void) {
 
 void free_edge(edge_t *e) {
 	sockaddrfree(&e->address);
+	sockaddrfree(&e->local_address);
 
 	free(e);
 }
