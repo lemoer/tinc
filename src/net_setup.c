@@ -311,12 +311,12 @@ static timeout_t edgeupdate_timeout;
 
 static void keyexpire_handler(void *data) {
 	regenerate_key();
-	timeout_set(data, &(struct timeval){keylifetime, rand() % 100000});
+	timeout_set(data, &(struct timeval){keylifetime + (rand() % 10), rand() % 100000});
 }
 
 static void edgeupdate_handler(void *data) {
 	update_edge_weight();
-	timeout_set(data, &(struct timeval){edgeupdateinterval, rand() % 100000});
+	timeout_set(data, &(struct timeval){edgeupdateinterval + (rand() % 10), rand() % 100000});
 }
 
 void regenerate_key(void) {
