@@ -101,6 +101,8 @@ void hash_delete(hash_t *hash, const void *key) {
 /* Utility functions */
 
 void hash_clear(hash_t *hash) {
+	if (!hash)
+		return;
 	memset(hash->values, 0, hash->n * sizeof *hash->values);
 }
 
