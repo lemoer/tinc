@@ -329,7 +329,6 @@ void regenerate_key(void) {
 }
 
 void update_edge_weight(void) {
-	splay_node_t node;
 	logger(DEBUG_STATUS, LOG_INFO, "Update edge weight");
 
 	for list_each(connection_t, c, connection_list) {
@@ -337,11 +336,15 @@ void update_edge_weight(void) {
 				continue;
 
 			if (c->edge->avg_rtt && (c->edge->weight != c->edge->avg_rtt*10)) {
+				splay_node_t *node = splay_unlink(edge_weight_tree, c->edge);
+				if (!node)
+					continue;
+
 				logger(DEBUG_STATUS, LOG_INFO, "update_edge_weight(): %s -> %s (%d -> %d)", c->edge->from->name,
 							 c->edge->to->name,
 							 c->edge->weight,
 							 c->edge->avg_rtt*10);
-				node = splay_unlink(edge_weight_tree, c->edge);
+
 				/* avg_rtt is in ms */
 				c->edge->weight = c->edge->avg_rtt*10;
 				node->data = c->edge;
