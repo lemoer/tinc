@@ -344,6 +344,7 @@ void update_edge_weight(void) {
 				node = splay_unlink(edge_weight_tree, c->edge);
 				/* avg_rtt is in ms */
 				c->edge->weight = c->edge->avg_rtt*10;
+				node->data = c->edge;
 				splay_insert_node(edge_weight_tree, node);
 				send_add_edge(c, c->edge);
 			}
