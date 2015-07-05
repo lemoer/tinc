@@ -78,11 +78,8 @@ edge_t *new_edge(void) {
 void free_edge(edge_t *e) {
 	sockaddrfree(&e->address);
 	sockaddrfree(&e->local_address);
-	if (e->reverse)
-		e->reverse = NULL;
 
 	free(e);
-	e = NULL;
 }
 
 void edge_add(edge_t *e) {
@@ -150,9 +147,7 @@ bool dump_edges(connection_t *c) {
                                         local_address, e->options, e->weight,
                                         e->avg_rtt);
 			free(address);
-			address = NULL;
 			free(local_address);
-			local_address = NULL;
 		}
 	}
 
