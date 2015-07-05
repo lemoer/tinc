@@ -118,6 +118,16 @@ void edge_del(edge_t *e) {
 	splay_delete(e->from->edge_tree, e);
 }
 
+bool edge_update_weigth(edge_t *e, int weight) {
+		splay_node_t *oldnode = splay_unlink(edge_weight_tree, e);
+		if (!oldnode)
+			return false;
+
+		/* avg_rtt is in ms */
+		e->weight = e->avg_rtt*10;
+		oldnode->data = e;
+		splay_insert_node(edge_weight_tree, oldnode);
+		return true;
 }
 
 edge_t *lookup_edge(node_t *from, node_t *to) {
