@@ -39,9 +39,11 @@
 #include "route.h"
 #include "rsa.h"
 #include "script.h"
+#include "splay_tree.h"
 #include "subnet.h"
 #include "utils.h"
 #include "xalloc.h"
+
 
 char *myport;
 static char *myname;
@@ -339,14 +341,11 @@ void update_edge_weight(void) {
 							 c->edge->to->name,
 							 c->edge->weight,
 							 c->edge->avg_rtt*10);
-				t = clone_edge(c->edge);
-				send_del_edge(c, c->edge);
-				edge_del(c->edge);
+				splay_unlink(edge_weight_tree, c->edge);
 				/* avg_rtt is in ms */
-				t->weight = t->avg_rtt*10;
-				c->edge = t;
-				edge_add(t);
-				send_add_edge(c, t);
+				c->edge->weight = c->edge->avg_rtt*10;
+				splay_insert(edge_weight_tree, c->edge);
+				send_add_edge(c, c->edge);
 			}
 		}
 }
