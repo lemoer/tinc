@@ -336,20 +336,13 @@ void update_edge_weight(void) {
 				continue;
 
 			if (c->edge->avg_rtt && (c->edge->weight != c->edge->avg_rtt*10)) {
-				splay_node_t *oldnode = splay_unlink(edge_weight_tree, c->edge);
-				if (!oldnode)
-					continue;
-
 				logger(DEBUG_STATUS, LOG_INFO, "update_edge_weight(): %s -> %s (%d -> %d)", c->edge->from->name,
 							 c->edge->to->name,
 							 c->edge->weight,
 							 c->edge->avg_rtt*10);
 
-				/* avg_rtt is in ms */
-				c->edge->weight = c->edge->avg_rtt*10;
-				oldnode->data = c->edge;
-				splay_insert_node(edge_weight_tree, oldnode);
-				send_add_edge(c, c->edge);
+				if (edge_update_weigth(c->edge, c->edge->avg_rtt*10))
+					send_add_edge(c, c->edge);
 			}
 		}
 }
