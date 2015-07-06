@@ -83,23 +83,22 @@ void free_edge(edge_t *e) {
 }
 
 void edge_add(edge_t *e) {
-	splay_insert(edge_weight_tree, e);
-	if (!e->from) {
-		logger(DEBUG_ALWAYS, LOG_ERR, "edge_add(): e->from is NULL!");
-		abort();
+	if (!splay_insert(edge_weight_tree, e))
+		logger(DEBUG_ALWAYS, LOG_ERR,
+					 "%s:%d: edge from: %s to: %s exists in edge_weight_tree",
+					 __FUNCTION__, __LINE__, e->from->name, e->to->name);
+
+	if (splay_insert(e->from->edge_tree, e)) {
+		e->reverse = lookup_edge(e->to, e->from);
+
+		if(e->reverse) {
+			if (e->reverse->reverse) {
+				logger(DEBUG_ALWAYS, LOG_ERR, "edge_add(): e->reverse->reverse should be NULL!");
+				abort();
+			}
+			e->reverse->reverse = e;
+		}
 	}
-
-	if (!e->to) {
-		logger(DEBUG_ALWAYS, LOG_ERR, "edge_add(): e->to is NULL!");
-		abort();
-	}
-
-	splay_insert(e->from->edge_tree, e);
-
-	e->reverse = lookup_edge(e->to, e->from);
-
-	if(e->reverse)
-		e->reverse->reverse = e;
 }
 
 void edge_del(edge_t *e) {
