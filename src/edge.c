@@ -119,8 +119,7 @@ bool edge_update_weigth(edge_t *e, int weight) {
 		if (!oldnode)
 			return false;
 
-		/* avg_rtt is in ms */
-		e->weight = e->avg_rtt*10;
+		e->weight = weight;
 		oldnode->data = e;
 		splay_insert_node(edge_weight_tree, oldnode);
 		return true;
