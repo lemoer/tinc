@@ -176,6 +176,9 @@ bool add_edge_h(connection_t *c, const char *request) {
 				logger(DEBUG_PROTOCOL, LOG_WARNING, "Got %s from %s (%s) with new weight %d -> %d",
 						   "ADD_EDGE", c->name, c->hostname, e->weight, weight);
 				edge_update_weigth(e, weight);
+				if (e->reverse)
+					edge_update_weigth(e->reverse, weight);
+
 				graph();
 				return true;
 		} else {
