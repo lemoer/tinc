@@ -86,20 +86,16 @@ void edge_add(edge_t *e) {
 	if (splay_insert(e->from->edge_tree, e)) {
 		e->reverse = lookup_edge(e->to, e->from);
 
-		if(e->reverse) {
-			if (e->reverse->reverse) {
-				logger(DEBUG_ALWAYS, LOG_ERR, "edge_add(): e->reverse->reverse should be NULL!");
-				abort();
-			}
+		if(e->reverse)
 			e->reverse->reverse = e;
-		}
+
 		if (!splay_insert(edge_weight_tree, e))
 			logger(DEBUG_ALWAYS, LOG_ERR,
 						 "%s:%d: edge from: %s to: %s exists in edge_weight_tree",
 						 __FUNCTION__, __LINE__, e->from->name, e->to->name);
 	} else {
 		logger(DEBUG_ALWAYS, LOG_ERR,
-					 "%s:%d: edge from: %s to: %s exists in from->edge_tree",
+					 "%s:%d: edge from: %s to: %s exists in e->from->edge_tree",
 					 __FUNCTION__, __LINE__, e->from->name, e->to->name);
 	}
 }
