@@ -135,6 +135,16 @@ bool add_edge_h(connection_t *c, const char *request) {
 	e = lookup_edge(from, to);
 
 	if(e) {
+		/* Update weight first */
+		if(e->weight != weight){
+			logger(DEBUG_PROTOCOL, LOG_WARNING, "Got %s from %s (%s) with new weight %d -> %d",
+						 "ADD_EDGE", c->name, c->hostname, e->weight, weight);
+			edge_update_weigth(e, weight);
+			if (e->reverse)
+				edge_update_weigth(e->reverse, weight);
+			graph();
+		}
+
 		if(e->options != options || sockaddrcmp(&e->address, &address)) {
 			if(from == myself) {
 				logger(DEBUG_PROTOCOL, LOG_WARNING, "Got %s from %s (%s) for ourself which does not match existing entry",
@@ -172,15 +182,6 @@ bool add_edge_h(connection_t *c, const char *request) {
 
 				return true;
 			}
-		} else if(e->weight != weight){
-				logger(DEBUG_PROTOCOL, LOG_WARNING, "Got %s from %s (%s) with new weight %d -> %d",
-						   "ADD_EDGE", c->name, c->hostname, e->weight, weight);
-				edge_update_weigth(e, weight);
-				if (e->reverse)
-					edge_update_weigth(e->reverse, weight);
-
-				graph();
-				return true;
 		} else {
 
 			sockaddrfree(&local_address);
