@@ -609,9 +609,11 @@ void setup_outgoing_connection(outgoing_t *outgoing) {
 		return;
 	}
 
-	init_configuration(&outgoing->config_tree);
-	read_host_config(outgoing->config_tree, outgoing->name);
-	outgoing->cfg = lookup_config(outgoing->config_tree, "Address");
+	if (!outgoing->config_tree) {
+		init_configuration(&outgoing->config_tree);
+		read_host_config(outgoing->config_tree, outgoing->name);
+		outgoing->cfg = lookup_config(outgoing->config_tree, "Address");
+	}
 
 	if(!outgoing->cfg) {
 		if(n)
