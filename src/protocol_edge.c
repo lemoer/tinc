@@ -142,8 +142,6 @@ bool add_edge_h(connection_t *c, const char *request) {
 			edge_update_weigth(e, weight);
 			if (e->reverse)
 				edge_update_weigth(e->reverse, weight);
-
-			send_add_edge(c, e);
 			graph();
 		}
 
