@@ -541,11 +541,15 @@ static void route_ipv6(node_t *source, vpn_packet_t *packet) {
 	}
 
 	subnet_t *subnet;
+	subnet_t *subnet_src;
 	node_t *via;
 	ipv6_t dest;
+	ipv6_t src;
 
 	memcpy(&dest, &DATA(packet)[38], sizeof dest);
+	memcpy(&src, &DATA(packet)[22], sizeof src);
 	subnet = lookup_subnet_ipv6(&dest);
+	subnet_src = lookup_subnet_ipv6(&src);
 
 	if(!subnet) {
 		logger(DEBUG_TRAFFIC, LOG_WARNING, "Cannot route packet from %s (%s): unknown IPv6 destination address %hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
@@ -564,6 +568,22 @@ static void route_ipv6(node_t *source, vpn_packet_t *packet) {
 	}
 
 	if (!subnet->owner) {
+		// Prevent loops
+		if (strictsubnets && !subnet_src) {
+			logger(DEBUG_ALWAYS, LOG_WARNING, "Ignore broadcast packet from %s (%s): unknown IPv6 source address %hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
+						 source->name, source->hostname,
+						 ntohs(src.x[0]),
+						 ntohs(src.x[1]),
+						 ntohs(src.x[2]),
+						 ntohs(src.x[3]),
+						 ntohs(src.x[4]),
+						 ntohs(src.x[5]),
+						 ntohs(src.x[6]),
+						 ntohs(src.x[7]));
+			route_ipv6_unreachable(source, packet, ether_size, ICMP6_DST_UNREACH, ICMP6_DST_UNREACH_ADDR);
+			return;
+		}
+
 		broadcast_packet(source, packet);
 		return;
 	}
