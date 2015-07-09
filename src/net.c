@@ -104,7 +104,6 @@ void terminate_connection(connection_t *c, bool report) {
 		c->edge = NULL;
 
 		/* Run MST and SSSP algorithms */
-
 		graph();
 
 		/* If the node is not reachable anymore but we remember it had an edge to us, clean it up */
@@ -253,7 +252,7 @@ static void periodic_handler(void *data) {
 				if(i++ != r)
 					continue;
 
-				if(!c->outgoing || !c->node || c->node->edge_tree->count < 2)
+				if(!c->outgoing || c->outgoing->keep_it || !c->node || c->node->edge_tree->count < 2)
 					break;
 
 				logger(DEBUG_CONNECTIONS, LOG_INFO, "Autodisconnecting from %s", c->name);
