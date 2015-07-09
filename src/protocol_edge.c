@@ -143,15 +143,13 @@ bool add_edge_h(connection_t *c, const char *request) {
 				sockaddrfree(&local_address);
 				return true;
 			} else {
-				logger(DEBUG_PROTOCOL, LOG_WARNING, "Got %s from %s (%s) which does not match existing entry",
-						   "ADD_EDGE", c->name, c->hostname);
 				/* Update weight first */
 				if(e->weight != weight){
-					logger(DEBUG_PROTOCOL, LOG_WARNING, "Got %s from %s (%s) with new weight %d -> %d",
-								 "ADD_EDGE", c->name, c->hostname, e->weight, weight);
-					//edge_update_weigth(e, weight);
-					//if (e->reverse)
-					//	edge_update_weigth(e->reverse, weight);
+					logger(DEBUG_PROTOCOL, LOG_WARNING, "Got %s from %s (%s) with new weight %s -> %s %d -> %d",
+								 "ADD_EDGE", c->name, c->hostname, e->from->name, e->to->name, e->weight, weight);
+				} else {
+					logger(DEBUG_PROTOCOL, LOG_WARNING, "Got %s from %s (%s) which does not match existing entry",
+								 "ADD_EDGE", c->name, c->hostname);
 				}
 				edge_del(e);
 				graph();
