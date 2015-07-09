@@ -147,6 +147,8 @@ bool add_edge_h(connection_t *c, const char *request) {
 				if(e->weight != weight){
 					logger(DEBUG_PROTOCOL, LOG_WARNING, "Got %s from %s (%s) with new weight %s -> %s %d -> %d",
 								 "ADD_EDGE", c->name, c->hostname, e->from->name, e->to->name, e->weight, weight);
+					edge_update_weigth(e, weight);
+					goto exit_with_graph;
 				} else {
 					logger(DEBUG_PROTOCOL, LOG_WARNING, "Got %s from %s (%s) which does not match existing entry",
 								 "ADD_EDGE", c->name, c->hostname);
@@ -214,7 +216,7 @@ bool add_edge_h(connection_t *c, const char *request) {
 	edge_add(e);
 
 	/* Tell the rest about the new edge */
-
+ exit_with_graph:
 	if(!tunnelserver)
 		forward_request(c, request);
 
