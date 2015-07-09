@@ -148,13 +148,18 @@ bool add_edge_h(connection_t *c, const char *request) {
 					logger(DEBUG_PROTOCOL, LOG_WARNING, "Got %s from %s (%s) with new weight %s -> %s %d -> %d",
 								 "ADD_EDGE", c->name, c->hostname, e->from->name, e->to->name, e->weight, weight);
 					edge_update_weigth(e, weight);
-					goto exit_with_graph;
-				} else {
-					logger(DEBUG_PROTOCOL, LOG_WARNING, "Got %s from %s (%s) which does not match existing entry",
-								 "ADD_EDGE", c->name, c->hostname);
 				}
-				edge_del(e);
-				graph();
+				if (e->options != options) {
+					logger(DEBUG_PROTOCOL, LOG_WARNING, "Got %s from %s (%s) with new options %s -> %s %x -> %x",
+								 "ADD_EDGE", c->name, c->hostname, e->from->name, e->to->name, e->options, options);
+					e->options = options;
+				}
+				if (sockaddrcmp(&e->address, &address)) {
+					logger(DEBUG_PROTOCOL, LOG_WARNING, "Got %s from %s (%s) with new address %s -> %s",
+								 "ADD_EDGE", c->name, c->hostname, e->from->name, e->to->name);
+					e->address = address;
+				}
+				goto exit_with_graph;
 			}
 		} else if(sockaddrcmp(&e->local_address, &local_address)) {
 			if(from == myself) {
