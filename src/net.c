@@ -270,12 +270,12 @@ static void periodic_handler(void *data) {
 			for list_each(outgoing_t, o, outgoing_list) {
 				bool found = false;
 				for list_each(connection_t, c, connection_list) {
-						if((c->outgoing == o) && (c->outgoing->keep_it)) {
+						if(c->outgoing == o) {
 						found = true;
 						break;
 					}
 				}
-				if(!found) {
+				if(!found && !o->keep_it) {
 					logger(DEBUG_CONNECTIONS, LOG_INFO, "Cancelled outgoing connection to %s", o->name);
 					list_delete_node(outgoing_list, node);
 				}
