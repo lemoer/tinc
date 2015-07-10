@@ -270,7 +270,7 @@ static void periodic_handler(void *data) {
 			for list_each(outgoing_t, o, outgoing_list) {
 				bool found = false;
 				for list_each(connection_t, c, connection_list) {
-					if(c->outgoing == o) {
+						if((c->outgoing == o) && (!c->outgoing->keep_it)) {
 						found = true;
 						break;
 					}
