@@ -209,8 +209,8 @@ bool dump_nodes(connection_t *c) {
 
 bool dump_traffic(connection_t *c) {
 	for splay_each(node_t, n, node_tree)
-		send_request(c, "%d %d %s %"PRIu64" %"PRIu64" %"PRIu64" %"PRIu64, CONTROL, REQ_DUMP_TRAFFIC,
-			   n->name, n->in_packets, n->in_bytes, n->out_packets, n->out_bytes);
+		send_request(c, "%d %d %s %"PRIu64" %"PRIu64" %"PRIu64" %"PRIu64" %d", CONTROL, REQ_DUMP_TRAFFIC,
+		n->name, n->in_packets, n->in_bytes, n->out_packets, n->out_bytes, n == myself ? 1 : 0);
 
 	return send_request(c, "%d %d", CONTROL, REQ_DUMP_TRAFFIC);
 }

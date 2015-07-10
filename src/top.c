@@ -43,6 +43,7 @@ typedef struct nodestats_t {
 	float out_packets_rate;
 	float out_bytes_rate;
 	bool known;
+	bool myself;
 } nodestats_t;
 
 static const char *const sortname[] = {
@@ -85,17 +86,18 @@ static bool update(int fd) {
 	uint64_t in_bytes;
 	uint64_t out_packets;
 	uint64_t out_bytes;
+	bool myself;
 
 	for list_each(nodestats_t, ns, &node_list)
 		ns->known = false;
 
 	while(recvline(fd, line, sizeof line)) {
-		int n = sscanf(line, "%d %d %s %"PRIu64" %"PRIu64" %"PRIu64" %"PRIu64, &code, &req, name, &in_packets, &in_bytes, &out_packets, &out_bytes);
+		int n = sscanf(line, "%d %d %s %"PRIu64" %"PRIu64" %"PRIu64" %"PRIu64" %d", &code, &req, name, &in_packets, &in_bytes, &out_packets, &out_bytes, &myself);
 
 		if(n == 2)
 			return true;
 
-		if(n != 7)
+		if(n != 8)
 			return false;
 
 		nodestats_t *found = NULL;
@@ -119,6 +121,7 @@ static bool update(int fd) {
 		if(!found) {
 			found = xzalloc(sizeof *found);
 			found->name = xstrdup(name);
+			found->myself = myself;
 			list_insert_tail(&node_list, found);
 			changed = true;
 		}
@@ -234,6 +237,11 @@ static void redraw(void) {
 		else
 			mvprintw(row, 0, "%-16s %10.0f %10.0f %10.0f %10.0f",
 					node->name, node->in_packets_rate * pscale, node->in_bytes_rate * bscale, node->out_packets_rate * pscale, node->out_bytes_rate * bscale);
+
+		if (node->myself) {
+			attrset(A_NORMAL);
+			mvprintw(1, 0, "Node: %-16s", node->name);
+		}
 	}
 
 	attrset(A_NORMAL);
