@@ -399,6 +399,15 @@ static void route_ipv4(node_t *source, vpn_packet_t *packet) {
 		return;
 	}
 
+	if (subnet->multicast) {
+		logger(DEBUG_TRAFFIC, LOG_WARNING, "Ignore multicast from %s (%s) to %d.%d.%d.%d !", source->name, source->hostname,
+					 dest.x[0],
+					 dest.x[1],
+					 dest.x[2],
+					 dest.x[3]);
+		return;
+	}
+
 	if (!subnet->owner) {
 		broadcast_packet(source, packet);
 		return;
@@ -566,6 +575,22 @@ static void route_ipv6(node_t *source, vpn_packet_t *packet) {
 		route_ipv6_unreachable(source, packet, ether_size, ICMP6_DST_UNREACH, ICMP6_DST_UNREACH_ADDR);
 		return;
 	}
+
+	if (subnet->multicast) {
+		// Prevent loops
+		logger(DEBUG_ALWAYS, LOG_WARNING, "Ignore multicast from %s (%s) to IPv6 source address %hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
+					 source->name, source->hostname,
+					 ntohs(dest.x[0]),
+					 ntohs(dest.x[1]),
+					 ntohs(dest.x[2]),
+					 ntohs(dest.x[3]),
+					 ntohs(dest.x[4]),
+					 ntohs(dest.x[5]),
+					 ntohs(dest.x[6]),
+					 ntohs(dest.x[7]));
+		return;
+	}
+
 
 	if (!subnet->owner) {
 		// Prevent loops
