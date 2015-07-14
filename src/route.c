@@ -400,7 +400,7 @@ static void route_ipv4(node_t *source, vpn_packet_t *packet) {
 	}
 
 	if (subnet->multicast) {
-		logger(DEBUG_TRAFFIC, LOG_WARNING, "Ignore multicast from %s (%s) to %d.%d.%d.%d !", source->name, source->hostname,
+		logger(DEBUG_ALWAYS, LOG_WARNING, "Ignore multicast from %s (%s) to %d.%d.%d.%d !", source->name, source->hostname,
 					 dest.x[0],
 					 dest.x[1],
 					 dest.x[2],
