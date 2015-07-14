@@ -341,6 +341,7 @@ void update_edge_weight(void) {
 							 c->edge->weight,
 							 c->edge->avg_rtt*10);
 
+				/* avg_rtt is in ms */
 				if (edge_update_weigth(c->edge, c->edge->avg_rtt*10))
 					send_add_edge(c, c->edge);
 			}
@@ -601,14 +602,33 @@ bool setup_myself_reloadable(void) {
 		free(bmode);
 	}
 
-	const char* const DEFAULT_BROADCAST_SUBNETS[] = { "ff:ff:ff:ff:ff:ff", "255.255.255.255", "224.0.0.0/4", "ff00::/8" };
+	const char* const DEFAULT_BROADCAST_SUBNETS[] = { "ff:ff:ff:ff:ff:ff", "255.255.255.255"};
+
 	for (size_t i = 0; i < sizeof(DEFAULT_BROADCAST_SUBNETS) / sizeof(*DEFAULT_BROADCAST_SUBNETS); i++) {
 		subnet_t *s = new_subnet();
 		if (!str2net(s, DEFAULT_BROADCAST_SUBNETS[i]))
 			abort();
 		subnet_add(NULL, s);
 	}
+
+	const char* const DEFAULT_MULTICAST_SUBNETS[] = { "224.0.0.0/4", "ff00::/8"};
+
+	for (size_t i = 0; i < sizeof(DEFAULT_MULTICAST_SUBNETS) / sizeof(*DEFAULT_MULTICAST_SUBNETS); i++) {
+		subnet_t *s = new_subnet();
+		if (!str2net(s, DEFAULT_MULTICAST_SUBNETS[i]))
+			abort();
+		s->multicast = true;
+		subnet_add(NULL, s);
+	}
+
 	for (config_t* cfg = lookup_config(config_tree, "BroadcastSubnet"); cfg; cfg = lookup_config_next(config_tree, cfg)) {
+		subnet_t *s;
+		if (!get_config_subnet(cfg, &s))
+			continue;
+		subnet_add(NULL, s);
+	}
+
+	for (config_t* cfg = lookup_config(config_tree, "MulticastSubnet"); cfg; cfg = lookup_config_next(config_tree, cfg)) {
 		subnet_t *s;
 		if (!get_config_subnet(cfg, &s))
 			continue;

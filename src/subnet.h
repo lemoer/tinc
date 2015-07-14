@@ -52,6 +52,7 @@ typedef struct subnet_t {
 
 	subnet_type_t type;     /* subnet type (IPv4? IPv6? MAC? something even weirder?) */
 	time_t expires;         /* expiry time */
+	bool multicast;         /* true if this subnet is a multicast local-link only */
 	int weight;             /* weight (higher value is higher priority) */
 
 	/* And now for the actual subnet: */
