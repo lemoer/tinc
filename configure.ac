@@ -9,6 +9,7 @@ AM_INIT_AUTOMAKE([std-options subdir-objects -Wall])
 AC_CONFIG_HEADERS([config.h])
 AM_PROG_AR
 LT_INIT
+AC_CONFIG_MACRO_DIR([m4])
 
 # Enable GNU extensions.
 # Define this here, not in acconfig's @TOP@ section, since definitions
