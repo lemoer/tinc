@@ -329,14 +329,13 @@ void regenerate_key(void) {
 }
 
 void update_edge_weight(void) {
-	logger(DEBUG_STATUS, LOG_INFO, "Update edge weight");
 
 	for list_each(connection_t, c, connection_list) {
 			if (c->status.control || !c->edge)
 				continue;
 
 			if (c->edge->avg_rtt && (c->edge->weight != c->edge->avg_rtt*10)) {
-				logger(DEBUG_STATUS, LOG_INFO, "update_edge_weight(): %s -> %s (%d -> %d)", c->edge->from->name,
+				logger(DEBUG_STATUS, LOG_INFO, "%s: %s -> %s (%d -> %d)", __FUNCTION__, c->edge->from->name,
 							 c->edge->to->name,
 							 c->edge->weight,
 							 c->edge->avg_rtt*10);
