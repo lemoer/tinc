@@ -149,6 +149,7 @@ static void sssp_bfs(void) {
 
 	myself->status.visited = true;
 	myself->status.indirect = false;
+	myself->status.reachable = true;
 	myself->nexthop = myself;
 	myself->prevedge = NULL;
 	myself->via = myself;
@@ -205,7 +206,7 @@ static void sssp_bfs(void) {
 			e->to->options = e->options;
 			e->to->distance = n->distance + 1;
 
-			if(!e->to->status.reachable || (e->to->address.sa.sa_family == AF_UNSPEC && e->address.sa.sa_family != AF_UNKNOWN))
+			if(!e->to->status.reachable || (e->to != myself && e->to->address.sa.sa_family == AF_UNSPEC && e->address.sa.sa_family != AF_UNKNOWN))
 				update_node_udp(e->to, &e->address);
 
 			list_insert_tail(todo_list, e->to);
