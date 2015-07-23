@@ -39,7 +39,7 @@ static hash_t *node_id_cache;
 
 node_t *myself;
 
-static int node_compare(const node_t *a, const node_t *b) {
+int node_compare(const node_t *a, const node_t *b) {
 	return strcmp(a->name, b->name);
 }
 
@@ -175,6 +175,9 @@ void update_node_udp(node_t *n, const sockaddr_t *sa) {
 		free(n->hostname);
 		n->hostname = sockaddr2hostname(&n->address);
 		logger(DEBUG_PROTOCOL, LOG_DEBUG, "UDP address of %s set to %s", n->name, n->hostname);
+		n->status.has_known_address = true;
+	} else {
+		n->status.has_known_address = false;
 	}
 
 	/* invalidate UDP information - note that this is a security feature as well to make sure
