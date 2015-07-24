@@ -154,7 +154,7 @@ dnl Compiler hardening flags
 dnl No -fstack-protector-all because it doesn't work on all platforms or architectures.
 
 AC_ARG_ENABLE([hardening], AS_HELP_STRING([--disable-hardening], [disable compiler and linker hardening flags]))
-AS_IF([test "x$enable_devel" == "xyes"],
+AS_IF([test "x$enable_devel" = "xyes"],
    [AX_CHECK_COMPILE_FLAG([-Werror=conditional-uninitialized], [CFLAGS="$CFLAGS -Werror=conditional-uninitialized"])
    AX_CHECK_COMPILE_FLAG([-Werror=uninitialized], [CFLAGS="$CFLAGS -Werror=uninitialized"])
    AX_CHECK_COMPILE_FLAG([-Werror=unused-variable], [CFLAGS="$CFLAGS -Werror=unused-variable"])
