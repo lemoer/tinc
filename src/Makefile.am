@@ -3,10 +3,7 @@
 sbin_PROGRAMS = tincd tinc sptps_test sptps_keypair
 
 ## Make sure version.c is always rebuilt with the latest git information
-.PHONY: ${srcdir}/version.c version_git.h
-version_git.h:
-	echo >$@
-	-(cd $(srcdir) && git describe) && echo '#define GIT_DESCRIPTION "'`(cd $(srcdir) && git describe) | sed 's/release-//'`'"' >$@
+$(eval include version_git.mak)
 ${srcdir}/version.c: version_git.h
 
 if LINUX
