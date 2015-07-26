@@ -965,8 +965,7 @@ static bool setup_myself(void) {
 
 	graph();
 
-	if(autoconnect)
-		load_all_nodes();
+	load_all_nodes();
 
 	/* Open device */
 
