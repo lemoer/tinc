@@ -191,9 +191,11 @@ sptps_test_LDADD = libtincd.la libed25519.la libtincconf.la libchacha_poly1305.l
 sptps_keypair_LDADD = libed25519.la libtincconf.la libchacha_poly1305.la libtincd.la libchacha_poly1305.la
 
 if !DARWIN
+if !OPENBSD
 sptps_speed_LDADD += -lrt
 sptps_test_LDADD += -lrt
 sptps_keypair_LDADD += -lrt
+endif
 endif
 
 LIBS = @LIBS@ -lm
@@ -203,4 +205,8 @@ LIBS += -lpcap
 endif
 
 AM_CFLAGS = -DCONFDIR=\"$(sysconfdir)\" -DLOCALSTATEDIR=\"$(localstatedir)\" -DSBINDIR=\"$(sbindir)\" -iquote. 
+if OPENBSD
+AM_CFLAGS += -fstack-protector-all
+endif
+
 #-fsanitize=address
