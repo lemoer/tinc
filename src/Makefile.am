@@ -205,4 +205,8 @@ LIBS += -lpcap
 endif
 
 AM_CFLAGS = -DCONFDIR=\"$(sysconfdir)\" -DLOCALSTATEDIR=\"$(localstatedir)\" -DSBINDIR=\"$(sbindir)\" -iquote. 
+if OPENBSD
+AM_CFLAGS += -fstack-protector-all
+endif
+
 #-fsanitize=address
