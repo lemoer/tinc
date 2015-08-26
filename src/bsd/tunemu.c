@@ -33,6 +33,7 @@
 #include <stdint.h>
 #include <ctype.h>
 #include <fcntl.h>
+#include <err.h>
 
 #define PPPPROTO_CTL 1
 
@@ -259,8 +260,8 @@ static void allocate_data_buffer(int size)
 	if (data_buffer_length < size)
 	{
 		free(data_buffer);
-		data_buffer_length = size;
-		data_buffer = malloc(data_buffer_length);
+		if ((data_buffer = malloc(size)) == NULL)
+			err(1, NULL);
 	}
 }
 
