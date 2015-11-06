@@ -39,10 +39,10 @@ typedef struct node_status_t {
 	unsigned int udp_confirmed:1;           /* 1 if the address is one that we received UDP traffic on */
 	unsigned int send_locally:1;		/* 1 if the next UDP packet should be sent on the local network */
 	unsigned int udppacket:1;		/* 1 if the most recently received packet was UDP */
-	unsigned int validkey_in;		/* 1 if we have sent a valid key to him */
+	unsigned int validkey_in:1;		/* 1 if we have sent a valid key to him */
 	unsigned int has_known_address;					/* 1 if this node has UDP Address */
 	unsigned int has_cfg_address;           /* 1 if this node has Address in node's config */
-	unsigned int unused:19;
+	unsigned int unused:21;
 } node_status_t;
 
 typedef struct node_t {
