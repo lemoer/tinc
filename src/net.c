@@ -228,7 +228,7 @@ static void periodic_handler(void *data) {
 				}
 				if (!found)
 					splay_insert(tmp_node_tree, n);
-				}
+			}
 
 			if (tmp_node_tree->count) {
 				int r = rand() % tmp_node_tree->count;
@@ -242,11 +242,21 @@ static void periodic_handler(void *data) {
 						logger(DEBUG_CONNECTIONS, LOG_INFO, "Autoconnecting to %s", n->name);
 						outgoing_t *outgoing = xzalloc(sizeof *outgoing);
 						outgoing->name = xstrdup(n->name);
+						outgoing->is_alive = true;
 						list_insert_tail(outgoing_list, outgoing);
 						setup_outgoing_connection(outgoing);
 					}
 			} else {
 				logger(DEBUG_ALWAYS, LOG_INFO, "No more nodes available for autoconnect!");
+				for list_each(outgoing_t, outgoing, outgoing_list) {
+					/*
+					It looks like this connection "died" bacause of missing hostname->addr lookup.
+					Remove it and try again.
+					*/
+					if (!outgoing->is_alive) {
+						list_delete(outgoing_list, outgoing);
+					}
+				}
 			}
 			splay_delete_tree(tmp_node_tree);
 		} else if(nc > 3) {
