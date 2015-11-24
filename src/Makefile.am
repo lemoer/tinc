@@ -186,6 +186,7 @@ sptps_speed_SOURCES = \
 
 tincd_LDADD = libtincd.la libed25519.la libchacha_poly1305.la libtincconf.la
 tinc_LDADD = $(READLINE_LIBS) $(CURSES_LIBS) libtincd.la libtincconf.la libed25519.la libchacha_poly1305.la
+
 sptps_speed_LDADD = libtincd.la libed25519.la libtincconf.la libchacha_poly1305.la libchacha_poly1305.la
 sptps_test_LDADD = libtincd.la libed25519.la libtincconf.la libchacha_poly1305.la libchacha_poly1305.la
 sptps_keypair_LDADD = libed25519.la libtincconf.la libchacha_poly1305.la libtincd.la libchacha_poly1305.la
@@ -197,6 +198,15 @@ sptps_test_LDADD += -lrt
 sptps_keypair_LDADD += -lrt
 endif
 endif
+
+if MINIUPNPC
+tincd_SOURCES += upnp.h upnp.c
+tincd_LDADD += $(MINIUPNPC_LIBS)
+tincd_LDFLAGS = ${tincd_LDFLAGS} -pthread
+endif
+
+tinc_LDADD = $(READLINE_LIBS) $(CURSES_LIBS)
+sptps_speed_LDADD = -lrt
 
 LIBS = @LIBS@ -lm
 
