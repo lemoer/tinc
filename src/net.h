@@ -123,7 +123,6 @@ typedef struct listen_socket_t {
 typedef struct outgoing_t {
 	char *name;
 	bool keep_it;
-	bool is_alive;
 	int timeout;
 	splay_tree_t *config_tree;
 	struct config_t *cfg;

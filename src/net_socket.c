@@ -620,8 +620,6 @@ void setup_outgoing_connection(outgoing_t *outgoing) {
 			outgoing->aip = outgoing->ai = get_known_addresses(n);
 		if(!outgoing->ai) {
 			logger(DEBUG_ALWAYS, LOG_DEBUG, "No address known for %s", outgoing->name);
-			retry_outgoing(outgoing);
-			outgoing->is_alive = false;
 			return;
 		}
 	}
