@@ -205,16 +205,13 @@ tincd_LDADD += $(MINIUPNPC_LIBS)
 tincd_LDFLAGS = ${tincd_LDFLAGS} -pthread
 endif
 
-tinc_LDADD = $(READLINE_LIBS) $(CURSES_LIBS)
-sptps_speed_LDADD = -lrt
-
 LIBS = @LIBS@ -lm
 
 if TUNEMU
 LIBS += -lpcap
 endif
 
-AM_CFLAGS = -DCONFDIR=\"$(sysconfdir)\" -DLOCALSTATEDIR=\"$(localstatedir)\" -DSBINDIR=\"$(sbindir)\" -iquote. 
+AM_CFLAGS = -DCONFDIR=\"$(sysconfdir)\" -DLOCALSTATEDIR=\"$(localstatedir)\" -DSBINDIR=\"$(sbindir)\" -iquote. -fsanitize=undefined
 if OPENBSD
 AM_CFLAGS += -fstack-protector-all
 endif
