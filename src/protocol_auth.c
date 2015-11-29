@@ -744,7 +744,7 @@ static void send_everything(connection_t *c) {
 	}
 
 	for splay_each(node_t, n, node_tree) {
-			if (!n->status.reachable)
+			if ((n->last_state_change > 0) && (now.tv_sec - n->last_state_change >= 3600))
 				continue;
 
 		for splay_each(subnet_t, s, n->subnet_tree)
