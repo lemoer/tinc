@@ -744,8 +744,11 @@ static void send_everything(connection_t *c) {
 	}
 
 	for splay_each(node_t, n, node_tree) {
-			if ((n->last_state_change > 0) && (now.tv_sec - n->last_state_change >= 3600))
+			if ((!n->status.reachable) && ((now.tv_sec - n->last_state_change) >= keylifetime*2)) {
+				logger(DEBUG_CONNECTIONS, LOG_INFO, "Not forwarding informations about %s to %s (%ld / %d)", n->name,
+							 c->name, now.tv_sec - n->last_state_change, keylifetime);
 				continue;
+			}
 
 		for splay_each(subnet_t, s, n->subnet_tree)
 			send_add_subnet(c, s);
