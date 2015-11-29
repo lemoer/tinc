@@ -744,6 +744,9 @@ static void send_everything(connection_t *c) {
 	}
 
 	for splay_each(node_t, n, node_tree) {
+			if (!n->status.reachable)
+				continue;
+
 		for splay_each(subnet_t, s, n->subnet_tree)
 			send_add_subnet(c, s);
 
