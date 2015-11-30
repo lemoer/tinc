@@ -119,7 +119,11 @@ bool add_subnet_h(connection_t *c, const char *request) {
 	if(strictsubnets) {
 		logger(DEBUG_ALWAYS, LOG_WARNING, "Ignoring unauthorized %s from %s (%s): %s",
 				"ADD_SUBNET", c->name, c->hostname, subnetstr);
-		forward_request(c, request);
+		if ((!owner->status.reachable) && ((now.tv_sec - owner->last_state_change) >= keylifetime*2)) {
+				logger(DEBUG_CONNECTIONS, LOG_INFO, "Not forwarding informations about %s to ALL (%ld / %d)", owner->name, now.tv_sec - owner->last_state_change, keylifetime);
+		} else {
+			forward_request(c, request);
+		}
 		return true;
 	}
 
