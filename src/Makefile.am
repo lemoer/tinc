@@ -216,4 +216,13 @@ if OPENBSD
 AM_CFLAGS += -fstack-protector-all
 endif
 
+if BSD
+tincd_LDADD += -lexecinfo
+tinc_LDADD += -lexecinfo
+sptps_test_LDADD += -lexecinfo
+sptps_keypair_LDADD += -lexecinfo
+sptps_speed_LDADD += -lexecinfo
+endif
+
+
 #-fsanitize=address
