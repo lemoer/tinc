@@ -127,12 +127,15 @@ static void sptps_logger(sptps_t *s, int s_errno, const char *format, va_list ap
 		if(message[len - 1] == '\n')
 			message[--len] = 0;
 
+		len += snprintf(message + len, sizeof message - len,
+										" i: %d UDP: %d", s->initiator, s->datagram);
+
 		// WARNING: s->handle can point to a connection_t or a node_t,
 		// but both types have the name and hostname fields at the same offsets.
 		connection_t *c = s->handle;
 		if(c)
 			snprintf(message + len, sizeof message - len,
-							 " from %s (%s) [errno: %d]", c->name, c->hostname, s_errno);
+							 " %s %s (%s) [errno: %d]", s->initiator ? "to" : "from", c->name, c->hostname, s_errno);
 	}
 
 	real_logger(DEBUG_ALWAYS, LOG_ERR, message);

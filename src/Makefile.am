@@ -31,7 +31,7 @@ libed25519_la_SOURCES = \
 	ed25519/precomp_data.h \
 	ed25519/sc.c ed25519/sc.h \
 	ed25519/sha512.c ed25519/sha512.h \
-  ed25519/ecdsa.c \
+	ed25519/ecdsa.c \
 	ed25519/sign.c \
 	ed25519/verify.c
 

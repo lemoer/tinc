@@ -249,8 +249,12 @@ static void check_reachability(void) {
 
 			n->status.validkey = false;
 			if(n->status.sptps) {
-				sptps_stop(&n->sptps);
-				n->status.waitingforkey = false;
+				sptps_t *s = &n->sptps;
+				if (s->handle) {
+					logger(DEBUG_ALWAYS, LOG_INFO, "Sptps active with: %s state: %d/%d", n->name, s->state, s->outstate);
+					sptps_stop(&n->sptps);
+					n->status.waitingforkey = false;
+				}
 			}
 			n->last_req_key = 0;
 

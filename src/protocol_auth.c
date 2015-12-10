@@ -185,9 +185,9 @@ static bool finalize_invitation(connection_t *c, const char *data, uint16_t len)
 	char *address, *port;
 
 	xasprintf(&envp[0], "NETNAME=%s", netname ? : "");
-        xasprintf(&envp[1], "DEVICE=%s", device ? : "");
-        xasprintf(&envp[2], "INTERFACE=%s", iface ? : "");
-        xasprintf(&envp[3], "NODE=%s", c->name);
+	xasprintf(&envp[1], "DEVICE=%s", device ? : "");
+	xasprintf(&envp[2], "INTERFACE=%s", iface ? : "");
+	xasprintf(&envp[3], "NODE=%s", c->name);
 	sockaddr2str(&c->address, &address, &port);
 	xasprintf(&envp[4], "REMOTEADDRESS=%s", address);
 	xasprintf(&envp[5], "NAME=%s", myself->name);
@@ -297,7 +297,7 @@ bool id_h(connection_t *c, const char *request) {
 		c->status.control = true;
 		c->allow_request = CONTROL;
 		c->last_ping_time = now;
-                c->last_ping_time.tv_sec += 3600;
+		c->last_ping_time.tv_sec += 3600;
 
 		free(c->name);
 		c->name = xstrdup("<control>");
@@ -405,7 +405,9 @@ bool id_h(connection_t *c, const char *request) {
 		else
 			snprintf(label, sizeof label, "tinc TCP key expansion %s %s", c->name, myself->name);
 
-		return sptps_start(&c->sptps, c, c->outgoing, false, myself->connection->ecdsa, c->ecdsa, label, sizeof label, send_meta_sptps, receive_meta_sptps);
+		return sptps_start(&c->sptps, c, c->outgoing ? true : false, false,
+											 myself->connection->ecdsa, c->ecdsa, label, sizeof label,
+											 send_meta_sptps, receive_meta_sptps);
 	} else {
 		return send_metakey(c);
 	}
