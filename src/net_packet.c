@@ -1409,7 +1409,6 @@ static void handle_incoming_vpn_packet(listen_socket_t *ls, vpn_packet_t *pkt, s
 	node_id_t nullid = {};
 	node_t *from, *to;
 	bool direct = false;
-	UNUSED(flags);
 
 	sockaddrunmap(addr); /* Some braindead IPv6 implementations do stupid things. */
 
