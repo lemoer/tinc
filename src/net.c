@@ -203,6 +203,7 @@ static void periodic_handler(void *data) {
 				nc++;
 		}
 
+
 		if(nc < 3) {
 			/* Not enough active connections, try to add one.
 			   Choose a random node, if we don't have a connection to it,
@@ -221,6 +222,9 @@ static void periodic_handler(void *data) {
 				goto end;
 			}
 
+			logger(DEBUG_ALWAYS, LOG_INFO, "%d active connections - autoconnecting to one of %d available nodes",
+						nc, count);
+
 			int r = rand() % count;
 
 			for splay_each(node_t, n, node_tree) {
@@ -238,6 +242,15 @@ static void periodic_handler(void *data) {
 						break;
 					}
 				}
+
+				if(!found) {
+					logger(DEBUG_CONNECTIONS, LOG_INFO, "Autoconnecting to %s", n->name);
+					outgoing_t *outgoing = xzalloc(sizeof *outgoing);
+					outgoing->name = xstrdup(n->name);
+					list_insert_tail(outgoing_list, outgoing);
+					setup_outgoing_connection(outgoing);
+				}
+
 				break;
 			}
 		} else if(nc > 3) {
