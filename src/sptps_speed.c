@@ -28,6 +28,14 @@
 #include "ecdsagen.h"
 #include "sptps.h"
 
+// Symbols necessary to link with logger.o
+bool send_request(void *c, const char *msg, ...) { return false; }
+struct list_t *connection_list = NULL;
+bool send_meta(void *c, const char *msg , int len) { return false; }
+char *logfilename = NULL;
+bool do_detach = false;
+struct timeval now;
+
 static bool send_data(void *handle, uint8_t type, const void *data, size_t len) {
 	int fd = *(int *)handle;
 	UNUSED(type);
