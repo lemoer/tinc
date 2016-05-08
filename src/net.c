@@ -180,7 +180,7 @@ static void periodic_handler(void *data) {
 
 	if(contradicting_del_edge > 100 && contradicting_add_edge > 100) {
 		logger(DEBUG_ALWAYS, LOG_WARNING, "Possible node with same Name as us! Sleeping %d seconds.", sleeptime);
-		usleep(sleeptime * 1000000LL);
+		nanosleep(&(struct timespec){sleeptime, 0}, NULL);
 		sleeptime *= 2;
 		if(sleeptime < 0)
 			sleeptime = 3600;
@@ -209,13 +209,25 @@ static void periodic_handler(void *data) {
 			   and we are not already trying to make one, create an
 			   outgoing connection to this node.
 			*/
-			splay_tree_t *tmp_node_tree;
+			int count = 0;
+			for splay_each(node_t, n, node_tree) {
+				if(n == myself || n->connection || !(n->status.has_address || n->status.reachable))
+					continue;
+				count++;
+			}
 
-			tmp_node_tree = splay_alloc_tree((splay_compare_t) node_compare, NULL);
+			if(!count) {
+				logger(DEBUG_ALWAYS, LOG_INFO, "No more nodes available for autoconnect!");
+				goto end;
+			}
+
+			int r = rand() % count;
 
 			for splay_each(node_t, n, node_tree) {
+				if(n == myself || n->connection || !(n->status.has_address || n->status.reachable))
+					continue;
 
-				if ((!n->status.has_known_address && !n->status.has_cfg_address) || n->connection)
+				if(r--)
 					continue;
 
 				bool found = false;
@@ -226,29 +238,8 @@ static void periodic_handler(void *data) {
 						break;
 					}
 				}
-				if (!found)
-					splay_insert(tmp_node_tree, n);
-				}
-
-			if (tmp_node_tree->count) {
-				int r = rand() % tmp_node_tree->count;
-				int i = 0;
-
-				for splay_each(node_t, n, tmp_node_tree) {
-
-						if(i++ != r)
-							continue;
-
-						logger(DEBUG_CONNECTIONS, LOG_INFO, "Autoconnecting to %s", n->name);
-						outgoing_t *outgoing = xzalloc(sizeof *outgoing);
-						outgoing->name = xstrdup(n->name);
-						list_insert_tail(outgoing_list, outgoing);
-						setup_outgoing_connection(outgoing);
-					}
-			} else {
-				logger(DEBUG_ALWAYS, LOG_INFO, "No more nodes available for autoconnect!");
+				break;
 			}
-			splay_delete_tree(tmp_node_tree);
 		} else if(nc > 3) {
 			/* Too many active connections, try to remove one.
 			   Choose a random outgoing connection to a node
@@ -295,6 +286,7 @@ static void periodic_handler(void *data) {
 		}
 	}
 
+end:
 	timeout_set(data, &(struct timeval){5, rand() % 100000});
 }
 
@@ -352,9 +344,14 @@ int reload_configuration(void) {
 		for splay_each(subnet_t, subnet, subnet_tree)
 			if (subnet->owner)
 				subnet->expires = 1;
+	}
 
-		load_all_nodes();
+	for splay_each(node_t, n, node_tree)
+		n->status.has_address = false;
 
+	load_all_nodes();
+
+	if(strictsubnets) {
 		for splay_each(subnet_t, subnet, subnet_tree) {
 			if (!subnet->owner)
 				continue;
@@ -455,7 +452,7 @@ void retry(void) {
 */
 int main_loop(void) {
 	timeout_add(&pingtimer, timeout_handler, &pingtimer, &(struct timeval){pingtimeout, rand() % 100000});
-	timeout_add(&periodictimer, periodic_handler, &periodictimer, &(struct timeval){pingtimeout, rand() % 100000});
+	timeout_add(&periodictimer, periodic_handler, &periodictimer, &(struct timeval){0, 0});
 
 #ifndef HAVE_MINGW
 	signal_t sighup;

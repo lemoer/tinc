@@ -1,6 +1,6 @@
 /*
     tincctl.c -- Controlling a running tincd
-    Copyright (C) 2007-2015 Guus Sliepen <guus@tinc-vpn.org>
+    Copyright (C) 2007-2016 Guus Sliepen <guus@tinc-vpn.org>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -88,7 +88,7 @@ static struct option const long_options[] = {
 static void version(void) {
 	printf("%s version %s (built %s %s, protocol %d.%d)\n", PACKAGE,
 		   BUILD_VERSION, BUILD_DATE, BUILD_TIME, PROT_MAJOR, PROT_MINOR);
-	printf("Copyright (C) 1998-2015 Ivo Timmermans, Guus Sliepen and others.\n"
+	printf("Copyright (C) 1998-2016 Ivo Timmermans, Guus Sliepen and others.\n"
 			"See the AUTHORS file for a complete list.\n\n"
 			"tinc comes with ABSOLUTELY NO WARRANTY.  This is free software,\n"
 			"and you are welcome to redistribute it under certain conditions;\n"
@@ -153,6 +153,8 @@ static void usage(bool status) {
 				"  join INVITATION            Join a VPN using an INVITATION\n"
 				"  network [NETNAME]          List all known networks, or switch to the one named NETNAME.\n"
 				"  fsck                       Check the configuration files for problems.\n"
+				"  sign [FILE]                Generate a signed version of a file.\n"
+				"  verify NODE [FILE]         Verify that a file was signed by the given NODE.\n"
 				"\n");
 		printf("Report bugs to tinc@tinc-vpn.org.\n");
 	}
@@ -327,7 +329,7 @@ static void disable_old_keys(const char *filename, const char *what) {
 
 static FILE *ask_and_open(const char *filename, const char *what, const char *mode, bool ask, mode_t perms) {
 	FILE *r;
-	char *directory;
+	char directory[PATH_MAX] = ".";
 	char buf[PATH_MAX];
 	char buf2[PATH_MAX];
 
@@ -355,7 +357,7 @@ static FILE *ask_and_open(const char *filename, const char *what, const char *mo
 	if(filename[0] != '/') {
 #endif
 		/* The directory is a relative path or a filename. */
-		directory = get_current_dir_name();
+		getcwd(directory, sizeof directory);
 		snprintf(buf2, sizeof buf2, "%s" SLASH "%s", directory, filename);
 		filename = buf2;
 	}
@@ -1437,6 +1439,29 @@ char *get_my_name(bool verbose) {
 	return NULL;
 }
 
+ecdsa_t *get_pubkey(FILE *f) {
+	char buf[4096];
+	char *value;
+	while(fgets(buf, sizeof buf, f)) {
+		int len = strcspn(buf, "\t =");
+		value = buf + len;
+		value += strspn(value, "\t ");
+		if(*value == '=') {
+			value++;
+			value += strspn(value, "\t ");
+		}
+		if(!rstrip(value))
+			continue;
+		buf[len] = 0;
+		if(strcasecmp(buf, "Ed25519PublicKey"))
+			continue;
+		if(*value)
+			return ecdsa_set_base64_public_key(value);
+	}
+
+	return NULL;
+}
+
 const var_t variables[] = {
 	/* Server configuration */
 	{"AddressFamily", VAR_SERVER},
@@ -2272,25 +2297,28 @@ static int cmd_exchange_all(int argc, char *argv[]) {
 }
 
 static int switch_network(char *name) {
+	if(strcmp(name, ".")) {
+		if(!check_netname(name, false)) {
+			fprintf(stderr, "Invalid character in netname!\n");
+			return 1;
+		}
+
+		if(!check_netname(name, true))
+			fprintf(stderr, "Warning: unsafe character in netname!\n");
+	}
+
 	if(fd >= 0) {
 		close(fd);
 		fd = -1;
 	}
 
-	free(confbase);
-	confbase = NULL;
-	free(pidfilename);
-	pidfilename = NULL;
-	free(logfilename);
-	logfilename = NULL;
-	free(unixsocketname);
-	unixsocketname = NULL;
+	free_names();
+	netname = strcmp(name, ".") ? xstrdup(name) : NULL;
+	make_names(false);
+
 	free(tinc_conf);
 	free(hosts_dir);
 	free(prompt);
-
-	free(netname);
-	netname = strcmp(name, ".") ? xstrdup(name) : NULL;
 
         xasprintf(&tinc_conf, "%s" SLASH "tinc.conf", confbase);
         xasprintf(&hosts_dir, "%s" SLASH "hosts", confbase);
@@ -2345,6 +2373,231 @@ static int cmd_fsck(int argc, char *argv[]) {
 	return fsck(orig_argv[0]);
 }
 
+static void *readfile(FILE *in, size_t *len) {
+	size_t count = 0;
+	size_t alloced = 4096;
+	char *buf = xmalloc(alloced);
+
+	while(!feof(in)) {
+		size_t read = fread(buf + count, 1, alloced - count, in);
+		if(!read)
+			break;
+		count += read;
+		if(count >= alloced) {
+			alloced *= 2;
+			buf = xrealloc(buf, alloced);
+		}
+	}
+
+	if(len)
+		*len = count;
+
+	return buf;
+}
+
+static int cmd_sign(int argc, char *argv[]) {
+	if(argc > 2) {
+		fprintf(stderr, "Too many arguments!\n");
+		return 1;
+	}
+
+	if(!name) {
+		name = get_my_name(true);
+		if(!name)
+			return 1;
+	}
+
+	char fname[PATH_MAX];
+	snprintf(fname, sizeof fname, "%s" SLASH "ed25519_key.priv", confbase);
+	FILE *fp = fopen(fname, "r");
+	if(!fp) {
+		fprintf(stderr, "Could not open %s: %s\n", fname, strerror(errno));
+		return 1;
+	}
+
+	ecdsa_t *key = ecdsa_read_pem_private_key(fp);
+
+	if(!key) {
+		fprintf(stderr, "Could not read private key from %s\n", fname);
+		fclose(fp);
+		return 1;
+	}
+
+	fclose(fp);
+
+	FILE *in;
+
+	if(argc == 2) {
+		in = fopen(argv[1], "rb");
+		if(!in) {
+			fprintf(stderr, "Could not open %s: %s\n", argv[1], strerror(errno));
+			ecdsa_free(key);
+			return 1;
+		}
+	} else {
+		in = stdin;
+	}
+
+	size_t len;
+	char *data = readfile(in, &len);
+	if(in != stdin)
+		fclose(in);
+	if(!data) {
+		fprintf(stderr, "Error reading %s: %s\n", argv[1], strerror(errno));
+		ecdsa_free(key);
+		return 1;
+	}
+
+	// Ensure we sign our name and current time as well
+	long t = time(NULL);
+	char *trailer;
+	xasprintf(&trailer, " %s %ld", name, t);
+	int trailer_len = strlen(trailer);
+
+	data = xrealloc(data, len + trailer_len);
+	memcpy(data + len, trailer, trailer_len);
+	free(trailer);
+
+	char sig[87];
+	if(!ecdsa_sign(key, data, len + trailer_len, sig)) {
+		fprintf(stderr, "Error generating signature\n");
+		free(data);
+		ecdsa_free(key);
+		return 1;
+	}
+	b64encode(sig, sig, 64);
+	ecdsa_free(key);
+
+	fprintf(stdout, "Signature = %s %ld %s\n", name, t, sig);
+	fwrite(data, len, 1, stdout);
+
+	free(data);
+	return 0;
+}
+
+static int cmd_verify(int argc, char *argv[]) {
+	if(argc < 2) {
+		fprintf(stderr, "Not enough arguments!\n");
+		return 1;
+	}
+
+	if(argc > 3) {
+		fprintf(stderr, "Too many arguments!\n");
+		return 1;
+	}
+
+	char *node = argv[1];
+	if(!strcmp(node, ".")) {
+		if(!name) {
+			name = get_my_name(true);
+			if(!name)
+				return 1;
+		}
+		node = name;
+	} else if(!strcmp(node, "*")) {
+		node = NULL;
+	} else {
+		if(!check_id(node)) {
+			fprintf(stderr, "Invalid node name\n");
+			return 1;
+		}
+	}
+
+	FILE *in;
+
+	if(argc == 3) {
+		in = fopen(argv[2], "rb");
+		if(!in) {
+			fprintf(stderr, "Could not open %s: %s\n", argv[2], strerror(errno));
+			return 1;
+		}
+	} else {
+		in = stdin;
+	}
+
+	size_t len;
+	char *data = readfile(in, &len);
+	if(in != stdin)
+		fclose(in);
+	if(!data) {
+		fprintf(stderr, "Error reading %s: %s\n", argv[1], strerror(errno));
+		return 1;
+	}
+
+	char *newline = memchr(data, '\n', len);
+	if(!newline || (newline - data > MAX_STRING_SIZE - 1)) {
+		fprintf(stderr, "Invalid input\n");
+		return 1;
+	}
+
+	*newline++ = '\0';
+	size_t skip = newline - data;
+
+	char signer[MAX_STRING_SIZE] = "";
+	char sig[MAX_STRING_SIZE] = "";
+	long t = 0;
+
+	if(sscanf(data, "Signature = %s %ld %s", signer, &t, sig) != 3 || strlen(sig) != 86 || !t || !check_id(signer)) {
+		fprintf(stderr, "Invalid input\n");
+		return 1;
+	}
+
+	if(node && strcmp(node, signer)) {
+		fprintf(stderr, "Signature is not made by %s\n", node);
+		return 1;
+	}
+
+	if(!node)
+		node = signer;
+
+	char *trailer;
+	xasprintf(&trailer, " %s %ld", signer, t);
+	int trailer_len = strlen(trailer);
+
+	data = xrealloc(data, len + trailer_len);
+	memcpy(data + len, trailer, trailer_len);
+	free(trailer);
+
+	newline = data + skip;
+
+	char fname[PATH_MAX];
+	snprintf(fname, sizeof fname, "%s" SLASH "hosts" SLASH "%s", confbase, node);
+	FILE *fp = fopen(fname, "r");
+	if(!fp) {
+		fprintf(stderr, "Could not open %s: %s\n", fname, strerror(errno));
+		free(data);
+		return 1;
+	}
+
+	ecdsa_t *key = get_pubkey(fp);
+	if(!key) {
+		rewind(fp);
+		key = ecdsa_read_pem_public_key(fp);
+	}
+	if(!key) {
+		fprintf(stderr, "Could not read public key from %s\n", fname);
+		fclose(fp);
+		free(data);
+		return 1;
+	}
+
+	fclose(fp);
+
+	if(b64decode(sig, sig, 86) != 64 || !ecdsa_verify(key, newline, len + trailer_len - (newline - data), sig)) {
+		fprintf(stderr, "Invalid signature\n");
+		free(data);
+		ecdsa_free(key);
+		return 1;
+	}
+
+	ecdsa_free(key);
+
+	fwrite(newline, len - (newline - data), 1, stdout);
+
+	free(data);
+	return 0;
+}
+
 static const struct {
 	const char *command;
 	int (*function)(int argc, char *argv[]);
@@ -2389,6 +2642,8 @@ static const struct {
 	{"join", cmd_join, false},
 	{"network", cmd_network, false},
 	{"fsck", cmd_fsck, false},
+	{"sign", cmd_sign, false},
+	{"verify", cmd_verify, false},
 	{NULL, NULL, NULL},
 };
 

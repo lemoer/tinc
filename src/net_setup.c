@@ -1,7 +1,7 @@
 /*
     net_setup.c -- Setup.
     Copyright (C) 1998-2005 Ivo Timmermans,
-                  2000-2015 Guus Sliepen <guus@tinc-vpn.org>
+                  2000-2016 Guus Sliepen <guus@tinc-vpn.org>
                   2006      Scott Lamb <slamb@slamb.org>
                   2010      Brandon Black <blblack@gmail.com>
 
@@ -370,18 +370,18 @@ void load_all_nodes(void) {
 			continue;
 
 		node_t *n = lookup_node(ent->d_name);
+		splay_tree_t *config_tree;
+		init_configuration(&config_tree);
+		read_config_options(config_tree, ent->d_name);
+		read_host_config(config_tree, ent->d_name);
+
 		if(!n) {
 			n = new_node();
 			n->name = xstrdup(ent->d_name);
 			node_add(n);
 		}
 
-		splay_tree_t *config_tree;
-		init_configuration(&config_tree);
-		read_config_options(config_tree, ent->d_name);
-		read_host_config(config_tree, ent->d_name);
-
-		if (strictsubnets) {
+		if(strictsubnets) {
 			for(config_t *cfg = lookup_config(config_tree, "Subnet"); cfg; cfg = lookup_config_next(config_tree, cfg)) {
 				subnet_t *s, *s2;
 
@@ -397,10 +397,8 @@ void load_all_nodes(void) {
 			}
 		}
 
-		if (lookup_config(config_tree, "Address")) {
-			n->status.has_known_address = true;
-			n->status.has_cfg_address = true;
-		}
+		if(lookup_config(config_tree, "Address"))
+			n->status.has_address = true;
 
 		exit_configuration(&config_tree);
 	}
@@ -601,16 +599,14 @@ bool setup_myself_reloadable(void) {
 		subnet_add(NULL, s);
 	}
 
-	for (config_t* cfg = lookup_config(config_tree, "MulticastSubnet"); cfg; cfg = lookup_config_next(config_tree, cfg)) {
-		subnet_t *s;
-		if (!get_config_subnet(cfg, &s))
-			continue;
-		subnet_add(NULL, s);
-	}
-
-#if !defined(SOL_IP) || !defined(IP_TOS)
+#if !defined(IPPROTO_IP) || !defined(IP_TOS)
 	if(priorityinheritance)
-		logger(DEBUG_ALWAYS, LOG_WARNING, "%s not supported on this platform", "PriorityInheritance");
+		logger(DEBUG_ALWAYS, LOG_WARNING, "%s not supported on this platform for IPv4 connections", "PriorityInheritance");
+#endif
+
+#if !defined(IPPROTO_IPV6) || !defined(IPV6_TCLASS)
+	if(priorityinheritance)
+		logger(DEBUG_ALWAYS, LOG_WARNING, "%s not supported on this platform for IPv6 connections", "PriorityInheritance");
 #endif
 
 	if(!get_config_int(lookup_config(config_tree, "MACExpire"), &macexpire))
@@ -1172,8 +1168,7 @@ void close_network_connections(void) {
 
 	if(myself && myself->connection) {
 		subnet_update(myself, NULL, false);
-		terminate_connection(myself->connection, false);
-		free_connection(myself->connection);
+		connection_del(myself->connection);
 	}
 
 	for(int i = 0; i < listen_sockets; i++) {

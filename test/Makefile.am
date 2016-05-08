@@ -11,12 +11,18 @@ test_scripts = \
   variables.test
 
 TESTS = \
-  simple \
-  $(test_scripts)
+	basic.test \
+	commandline.test \
+	executables.test \
+	import-export.test \
+	invite-join.test \
+	invite-tinc-up.test \
+	ns-ping.test \
+	ping.test \
+	sptps-basic.test \
+	variables.test
 
-CC=clang
-
-dist_check_SCRIPTS = $(test_scripts)
+dist_check_SCRIPTS = $(TESTS)
 
 EXTRA_DIST = testlib.sh
 

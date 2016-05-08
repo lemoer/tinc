@@ -159,7 +159,7 @@ bool add_edge_h(connection_t *c, const char *request) {
 								 "ADD_EDGE", c->name, c->hostname, e->from->name, e->to->name);
 					e->address = address;
 				}
-				goto exit_with_graph;
+				goto done;
 			}
 		} else if(sockaddrcmp(&e->local_address, &local_address)) {
 			if(from == myself) {
@@ -221,8 +221,8 @@ bool add_edge_h(connection_t *c, const char *request) {
 	e->avg_rtt = weight/10;
 	edge_add(e);
 
+done:
 	/* Tell the rest about the new edge */
- exit_with_graph:
 	if(!tunnelserver)
 		forward_request(c, request);
 

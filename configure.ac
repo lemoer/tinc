@@ -1,15 +1,13 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_CONFIG_MACRO_DIRS([m4])
 AC_INIT([tinc], m4_esyscmd_s((git describe || echo UNKNOWN) | sed 's/release-//'))
 AC_CONFIG_SRCDIR([src/tincd.c])
 AC_GNU_SOURCE
-AM_INIT_AUTOMAKE([std-options subdir-objects -Wall])
+AM_INIT_AUTOMAKE([std-options subdir-objects nostdinc silent-rules -Wall])
 AC_CONFIG_HEADERS([config.h])
-AM_PROG_AR
-LT_INIT
 AC_CONFIG_MACRO_DIR([m4])
+AM_SILENT_RULES([yes])
 
 # Enable GNU extensions.
 # Define this here, not in acconfig's @TOP@ section, since definitions
@@ -116,24 +114,6 @@ AC_ARG_ENABLE(tunemu,
   [tunemu=false]
 )
 
-AC_ARG_ENABLE(devel,
-  AS_HELP_STRING([--enable-devel], [enable compiler warnings/errors for developement]),
-  [ AS_IF([test "x$enable_devel" = "xyes"],
-      [ AC_DEFINE(ENABLE_DEVEL, 1, [Support for devel])
-        devel=true
-      ],
-      [devel=false])
-  ],
-  [devel=false]
-)
-
-AC_ARG_WITH(windows2000,
-  AS_HELP_STRING([--with-windows2000], [compile with support for Windows 2000. This disables support for tunneling over existing IPv6 networks.]),
-  [ AS_IF([test "x$with_windows2000" = "xyes"],
-      [AC_DEFINE(WITH_WINDOWS2000, 1, [Compile with support for Windows 2000])])
-  ]
-)
-
 AC_ARG_WITH(systemd,
   AS_HELP_STRING([--with-systemd@<:@=DIR@:>@], [install systemd service files @<:@to DIR if specified@:>@]),
   [ systemd=true; systemd_path="$with_systemd" ],
@@ -166,15 +146,6 @@ dnl Compiler hardening flags
 dnl No -fstack-protector-all because it doesn't work on all platforms or architectures.
 
 AC_ARG_ENABLE([hardening], AS_HELP_STRING([--disable-hardening], [disable compiler and linker hardening flags]))
-AS_IF([test "x$enable_devel" = "xyes"],
-   [AX_CHECK_COMPILE_FLAG([-Werror=conditional-uninitialized], [CFLAGS="$CFLAGS -Werror=conditional-uninitialized"])
-   AX_CHECK_COMPILE_FLAG([-Werror=uninitialized], [CFLAGS="$CFLAGS -Werror=uninitialized"])
-   AX_CHECK_COMPILE_FLAG([-Werror=unused-variable], [CFLAGS="$CFLAGS -Werror=unused-variable"])
-   AX_CHECK_COMPILE_FLAG([-Werror=unused-parameter], [CFLAGS="$CFLAGS -Werror=unused-parameter"])
-   AX_CHECK_COMPILE_FLAG([-Werror=missing-field-initializers], [CFLAGS="$CFLAGS -Werror=missing-field-initializers"])
-   AX_CHECK_COMPILE_FLAG([-Werror=missing-variable-declarations], [CFLAGS="$CFLAGS -Werror=missing-variable-declarations"])
-   AX_CHECK_COMPILE_FLAG([-Werror=missing-prototypes], [CFLAGS="$CFLAGS -Werror=missing-prototypes"])
-])
 
 AS_IF([test "x$enable_hardening" != "xno"],
   [AX_CHECK_COMPILE_FLAG([-DFORTIFY_SOURCE=2], [CPPFLAGS="$CPPFLAGS -DFORTIFY_SOURCE=2"])
@@ -210,9 +181,8 @@ dnl   AX_CHECK_COMPILE_FLAG([-Wno-cast-qual], [CFLAGS="$CFLAGS -Wno-cast-qual"])
 dnl Checks for header files.
 dnl We do this in multiple stages, because unlike Linux all the other operating systems really suck and don't include their own dependencies.
 
-AC_HEADER_STDC
-AC_CHECK_HEADERS([stdbool.h syslog.h sys/file.h sys/ioctl.h sys/mman.h sys/param.h sys/resource.h sys/socket.h sys/time.h sys/uio.h sys/un.h sys/wait.h netdb.h arpa/inet.h dirent.h])
-AC_CHECK_HEADERS([net/if.h net/if_types.h linux/if_tun.h net/if_tun.h net/tun/if_tun.h net/if_tap.h net/tap/if_tap.h net/ethernet.h net/if_arp.h netinet/in_systm.h netinet/in.h netinet/in6.h time.h netpacket/packet.h],
+AC_CHECK_HEADERS([syslog.h sys/file.h sys/ioctl.h sys/mman.h sys/param.h sys/resource.h sys/socket.h sys/time.h sys/un.h sys/wait.h netdb.h arpa/inet.h dirent.h getopt.h])
+AC_CHECK_HEADERS([net/if.h net/if_types.h net/ethernet.h net/if_arp.h netinet/in_systm.h netinet/in.h netinet/in6.h netpacket/packet.h],
   [], [], [#include "$srcdir/src/have.h"]
 )
 AC_CHECK_HEADERS([netinet/if_ether.h netinet/ip.h netinet/ip6.h resolv.h],
@@ -223,43 +193,45 @@ AC_CHECK_HEADERS([netinet/tcp.h netinet/ip_icmp.h netinet/icmp6.h],
 )
 
 dnl Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
-AC_C_VOLATILE
-AC_TYPE_PID_T
-AC_TYPE_SIZE_T
-AC_HEADER_TIME
-AC_STRUCT_TM
-
 tinc_ATTRIBUTE(__malloc__)
 tinc_ATTRIBUTE(__warn_unused_result__)
 
-AC_CHECK_TYPES([socklen_t, struct ether_header, struct arphdr, struct ether_arp, struct in_addr, struct addrinfo, struct ip, struct icmp, struct in6_addr, struct sockaddr_in6, struct ip6_hdr, struct icmp6_hdr, struct nd_neighbor_solicit, struct nd_opt_hdr], , ,
+AC_CHECK_TYPES([struct ether_header, struct arphdr, struct ether_arp, struct ip, struct icmp, struct ip6_hdr, struct icmp6_hdr, struct nd_neighbor_solicit, struct nd_opt_hdr], , ,
   [#include "$srcdir/src/have.h"]
 )
 
 dnl Checks for library functions.
 AC_TYPE_SIGNAL
-AC_CHECK_FUNCS([asprintf daemon fchmod flock ftime fork get_current_dir_name gettimeofday mlockall putenv random recvmmsg select strdup strerror strsignal strtol system time usleep unsetenv vsyslog writev],
+AC_CHECK_FUNCS([asprintf daemon fchmod flock ftime fork gettimeofday mlockall putenv recvmmsg strsignal nanosleep unsetenv vsyslog devname fdevname],
   [], [], [#include "$srcdir/src/have.h"]
 )
 
-dnl Support for SunOS
-
-AC_CHECK_FUNC(socket, [], [
-  AC_CHECK_LIB(socket, connect)
-])
-AC_CHECK_FUNC(gethostbyname, [], [
-  AC_CHECK_LIB(nsl, gethostbyname)
-])
-
-AC_CHECK_DECLS([freeaddrinfo, gai_strerror, getaddrinfo, getnameinfo],
-  [], [], [#include "$srcdir/src/have.h"]
-)
+AC_CHECK_FUNC(getopt_long, [getopt=true; AC_DEFINE(HAVE_GETOPT_LONG, 1, [getopt_long()])], [getopt=false])
+AM_CONDITIONAL(GETOPT, test "$getopt" = true)
 
 AC_CHECK_DECLS([res_init], [AC_CHECK_LIB(resolv, res_init)], [], [
   #include <netinet/in.h>
   #include <resolv.h>
 ])
+
+dnl Operating system specific checks
+case $host_os in
+  *linux*)
+    AC_CHECK_HEADERS([linux/if_tun.h],
+      [], [AC_MSG_ERROR([Required header file missng])], [#include "$srcdir/src/have.h"]
+    )
+  ;;
+  *bsd*|*dragonfly*|*darwin*)
+    AC_CHECK_HEADERS([net/if_tun.h net/if_utun.h net/tun/if_tun.h net/if_tap.h net/tap/if_tap.h],
+      [], [], [#include "$srcdir/src/have.h"]
+    )
+  ;;
+  *solaris*)
+    AC_CHECK_FUNC(socket, [], [AC_CHECK_LIB(socket, connect)])
+  ;;
+  *)
+  ;;
+esac
 
 AC_CACHE_SAVE
 

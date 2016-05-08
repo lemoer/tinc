@@ -1,4 +1,4 @@
-.Dd 2014-01-29
+.Dd 2016-04-11
 .Dt TINC.CONF 5
 .\" Manual page created by:
 .\" Ivo Timmermans
@@ -42,7 +42,7 @@ the configuration file should be
 and the host configuration files are now expected to be in
 .Pa @sysconfdir@/tinc/hosts/ .
 .Sh NAMES
-Each tinc daemon should have a name that is unique in the network which it will be part of.
+Each tinc daemon must have a name that is unique in the network which it will be part of.
 The name will be used by other tinc daemons for identification.
 The name has to be declared in the
 .Pa @sysconfdir@/tinc/ Ns Ar NETNAME Ns Pa /tinc.conf
@@ -265,6 +265,10 @@ Set type to tun with an address family header.
 Tinc will expect packets read from the virtual network device
 to start with a four byte header containing the address family,
 followed by an IP header.
+This mode should support both IPv4 and IPv6 packets.
+.It utun Pq OS X
+Set type to utun.
+This is only supported on OS X version 10.6.8 and higher, but doesn't require the tuntaposx module.
 This mode should support both IPv4 and IPv6 packets.
 .It tap Pq BSD and Linux
 Set type to tap.
@@ -551,7 +555,7 @@ variables can be specified, in which case each address will be tried until a wor
 connection has been established.
 .It Va Cipher Li = Ar cipher Pq blowfish
 The symmetric cipher algorithm used to encrypt UDP packets.
-Any cipher supported by OpenSSL is recognised.
+Any cipher supported by LibreSSL or OpenSSL is recognised.
 Furthermore, specifying
 .Qq none
 will turn off packet encryption.
@@ -568,7 +572,7 @@ Possible values are 0 (off), 1 (fast zlib) and any integer up to 9 (best zlib),
 10 (fast lzo) and 11 (best lzo).
 .It Va Digest Li = Ar digest Pq sha1
 The digest algorithm used to authenticate UDP packets.
-Any digest supported by OpenSSL is recognised.
+Any digest supported by LibreSSL or OpenSSL is recognised.
 Furthermore, specifying
 .Qq none
 will turn off packet authentication.
@@ -663,10 +667,18 @@ forwarding packets.
 .Sh SCRIPTS
 Apart from reading the server and host configuration files,
 tinc can also run scripts at certain moments.
-Under Windows (not Cygwin), the scripts should have the extension
+Below is a list of filenames of scripts and a description of when they are run.
+A script is only run if it exists and if it is executable.
+.Pp
+Scripts are run synchronously;
+this means that tinc will temporarily stop processing packets until the called script finishes executing.
+This guarantees that scripts will execute in the exact same order as the events that trigger them.
+If you need to run commands asynchronously, you have to ensure yourself that they are being run in the background.
+.Pp
+Under Windows (not Cygwin), the scripts must have the extension
 .Pa .bat
 or
-.Pa cmd .
+.Pa .cmd .
 .Bl -tag -width indent
 .It Pa @sysconfdir@/tinc/ Ns Ar NETNAME Ns Pa /tinc-up
 This is the most important script.
@@ -675,6 +687,7 @@ If it is present it will be executed right after the tinc daemon has been starte
 is used).
 It should be used to set up the corresponding network interface,
 but can also be used to start other things.
+.Pp
 Under Windows you can use the Network Connections control panel instead of creating this script.
 .It Pa @sysconfdir@/tinc/ Ns Ar NETNAME Ns Pa /tinc-down
 This script is started right before the tinc daemon quits (or when the last node becomes unreachable if
@@ -772,7 +785,7 @@ its connection to the virtual network device.
 .Sh SEE ALSO
 .Xr tincd 8 ,
 .Xr tinc 8 ,
-.Pa http://www.tinc-vpn.org/ ,
+.Pa https://www.tinc-vpn.org/ ,
 .Pa http://www.tldp.org/LDP/nag2/ .
 .Pp
 The full documentation for
