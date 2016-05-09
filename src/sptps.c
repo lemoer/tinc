@@ -145,7 +145,6 @@ bool sptps_send_record(sptps_t *s, uint8_t type, const void *data, uint16_t len)
 	// Sanity checks: application cannot send data before handshake is finished,
 	// and only record types 0..127 are allowed.
 	if(!s->outstate) {
-		//backtrace_cb(s);
 		return error(s, EINVAL, "Handshake phase not finished yet %x", s->outstate);
 	}
 	if(type >= SPTPS_HANDSHAKE)
