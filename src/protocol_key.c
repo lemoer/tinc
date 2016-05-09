@@ -210,7 +210,7 @@ static bool req_key_ext_h(connection_t *c, const char *request, node_t *from, no
 			}
 
 			if(from->sptps.label)
-                          logger(DEBUG_ALWAYS, LOG_DEBUG, "Got REQ_KEY from %s while we already started a SPTPS session!", from->name);
+				logger(DEBUG_PROTOCOL, LOG_DEBUG, "Got REQ_KEY from %s while we already started a SPTPS session!", from->name);
 
 			char buf[MAX_STRING_SIZE];
 			int len;
