@@ -33,9 +33,6 @@
 
 unsigned int sptps_replaywin = 16;
 
-void backtrace_cb(sptps_t *s);
-
-
 /*
    Nonce MUST be exchanged first (done)
    Signatures MUST be done over both nonces, to guarantee the signature is fresh
@@ -643,7 +640,6 @@ size_t sptps_receive_data(sptps_t *s, const void *data, size_t len) {
 // Start a SPTPS session.
 bool sptps_start(sptps_t *s, void *handle, bool initiator, bool datagram, ecdsa_t *mykey, ecdsa_t *hiskey, const void *label, size_t labellen, send_data_t send_data, receive_record_t receive_record) {
 	// Initialise struct sptps
-	//backtrace_cb(s);
 	memset(s, 0, sizeof *s);
 
 	s->handle = handle;
@@ -686,7 +682,6 @@ bool sptps_start(sptps_t *s, void *handle, bool initiator, bool datagram, ecdsa_
 bool sptps_stop(sptps_t *s) {
 	// Clean up any resources.
 
-	//backtrace_cb(s);
 	chacha_poly1305_exit(s->incipher);
 	chacha_poly1305_exit(s->outcipher);
 	ecdh_free(s->ecdh);
@@ -698,21 +693,4 @@ bool sptps_stop(sptps_t *s) {
 	free(s->late);
 	memset(s, 0, sizeof *s);
 	return true;
-}
-
-
-void backtrace_cb(sptps_t *s)
-{
-	#define BACKTRACE_SIZE 256
-	void *back[BACKTRACE_SIZE];
-	char **strings;
-	size_t size;
-	warning(s, "state: %x outstate: %x datagram: %x", s->state, s->outstate, s->datagram);
-
-	size = backtrace(back, BACKTRACE_SIZE);
-	strings = backtrace_symbols(back, size);
-	for (int j = 0; j < size; j++)
-		warning(s, "%s", strings[j]);
-
-	free(strings);
 }
