@@ -1204,14 +1204,6 @@ static void try_tx_sptps(node_t *n, bool mtu) {
 	if(n->connection && ((myself->options | n->options) & OPTION_TCPONLY))
 		return;
 
-	if (n->sptps.initiator && n->sptps.state != SPTPS_SECONDARY_KEX) {
-			logger(DEBUG_ALWAYS, LOG_INFO, "%s:%d : with %s i: %d u: %d s: %d o: %d", __FUNCTION__, __LINE__,
-						 n->name,
-						 n->sptps.initiator, n->sptps.datagram,
-						 n->sptps.state, n->sptps.outstate);
-			return;
-	}
-
 	/* Otherwise, try to do SPTPS authentication with n if necessary. */
 
 	try_sptps(n);
