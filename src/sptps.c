@@ -467,8 +467,10 @@ static bool sptps_check_seqno(sptps_t *s, uint32_t seqno, bool update_state) {
 
 // Check datagram for valid HMAC
 bool sptps_verify_datagram(sptps_t *s, const void *data, size_t len) {
-	if(!s->instate || len < 21)
-		return error(s, EIO, "Received short packet");
+	if(!s->instate)
+		return error(s, EIO, "%s@%d: Invalid instate", __FUNCTION__, __LINE__);
+	if(len < 21)
+		return error(s, EIO, "%s@%d: Received short packet", __FUNCTION__, __LINE__);
 
 	uint32_t seqno;
 	memcpy(&seqno, data, 4);
