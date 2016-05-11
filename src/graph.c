@@ -251,7 +251,6 @@ static void check_reachability(void) {
 			if(n->status.sptps) {
 				sptps_t *s = &n->sptps;
 				if (s->handle) {
-					logger(DEBUG_ALWAYS, LOG_INFO, "Sptps active with: %s state: %d/%d", n->name, s->state, s->outstate);
 					sptps_stop(&n->sptps);
 					n->status.waitingforkey = false;
 				}
