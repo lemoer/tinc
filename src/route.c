@@ -679,7 +679,7 @@ static void route_ipv6(node_t *source, vpn_packet_t *packet) {
 
 	if (subnet->multicast) {
 		// Prevent loops
-		logger(DEBUG_ALWAYS, LOG_WARNING, "Ignore multicast from %s (%s) to IPv6 source address %hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
+		logger(DEBUG_ALWAYS, LOG_WARNING, "Ignore multicast from %s (%s) to IPv6 destination address %hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
 					 source->name, source->hostname,
 					 ntohs(dest.x[0]),
 					 ntohs(dest.x[1]),
