@@ -49,6 +49,8 @@
 #endif
 
 char *myport;
+char *my_slpd_port;
+char *my_slpd_group;
 static char *myname;
 static io_t device_io;
 devops_t devops;
@@ -313,6 +315,13 @@ static bool read_rsa_private_key(void) {
 
 static timeout_t keyexpire_timeout;
 static timeout_t edgeupdate_timeout;
+/* Local Peer Discovery */
+static timeout_t slpdupdate_timeout;
+
+static void slpdupdate_handler(void *data) {
+	send_slpd_broadcast();
+	timeout_set(data, &(struct timeval){slpdinterval + (rand() % 10), rand() % 100000});
+}
 
 static void keyexpire_handler(void *data) {
 	regenerate_key();
@@ -322,6 +331,56 @@ static void keyexpire_handler(void *data) {
 static void edgeupdate_handler(void *data) {
 	update_edge_weight();
 	timeout_set(data, &(struct timeval){edgeupdateinterval + (rand() % 10), rand() % 100000});
+}
+
+void send_slpd_broadcast(void) {
+	int sd;
+	struct sockaddr_in address;
+	char slpd_msg[MAXSIZE] = "";
+	char *iface;
+	struct in_addr lif;
+	struct ifreq ifr;
+	int fd;
+
+	sd = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (sd < 0) {
+		logger(DEBUG_ALWAYS, LOG_INFO, "socket() error: [%s:%d]", strerror(errno), errno);
+		return;
+	}
+
+	/* Send SLPD only on this Interface */
+	if(get_config_string (lookup_config (config_tree, "SLPDInterface"), &iface)) {
+		fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+		ifr.ifr_addr.sa_family = AF_INET;
+		strncpy(ifr.ifr_name, iface, IFNAMSIZ-1);
+		ioctl(fd, SIOCGIFADDR, &ifr);
+		close(fd);
+
+		/* display result */
+		logger(DEBUG_ALWAYS, LOG_ERR, "%s has the ip: %s\n", iface,
+					 inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
+
+		lif.s_addr = inet_addr(inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
+		if(setsockopt(sd, IPPROTO_IP, IP_MULTICAST_IF, (char *)&lif, sizeof(lif)) < 0) {
+			logger(DEBUG_ALWAYS, LOG_ERR, "can not bind multicast to %s\n", iface);
+			return;
+		}
+	}
+
+	memset (&address, 0, sizeof (address));
+	address.sin_family = AF_INET;
+	address.sin_addr.s_addr = inet_addr (DEFAULT_SLPD_GROUP);
+	address.sin_port = htons(atoi(my_slpd_port));
+
+	snprintf(slpd_msg, MAXSIZE, "sLPD 0 1 %s %d none ", myname, atoi(myport));
+	slpd_msg[MAXSIZE-1] = '\00';
+	//ecdsa_sign(myself->sptps.mykey, msg, strlen(msg), sig);
+
+	if (sendto( sd, slpd_msg, strlen(slpd_msg), 0, (struct sockaddr *) &address, sizeof (address)) < 0) {
+		logger(DEBUG_ALWAYS, LOG_ERR, "SLPD send() error: [%s:%d]", strerror(errno), errno);
+	}
+	close(sd);
+	return;
 }
 
 void regenerate_key(void) {
@@ -642,6 +701,9 @@ bool setup_myself_reloadable(void) {
 	if(!get_config_int(lookup_config(config_tree, "EdgeUpdateInterval"), &edgeupdateinterval))
 		edgeupdateinterval = 0;
 
+	if(!get_config_int(lookup_config(config_tree, "SLPDInterval"), &slpdinterval))
+		slpdinterval = 0;
+
 	config_t *cfg = lookup_config(config_tree, "AutoConnect");
 	if(cfg) {
 		if(!get_config_bool(cfg, &autoconnect)) {
@@ -803,6 +865,12 @@ static bool setup_myself(void) {
 	else
 		port_specified = true;
 
+	if(!get_config_string(lookup_config(config_tree, "SLPDPort"), &my_slpd_port))
+		my_slpd_port = xstrdup(DEFAULT_SLPD_PORT);
+
+	if(!get_config_string(lookup_config(config_tree, "SLPDGroup"), &my_slpd_group))
+		my_slpd_group = xstrdup(DEFAULT_SLPD_GROUP);
+
 	myself->connection->options = 0;
 	myself->connection->protocol_major = PROT_MAJOR;
 	myself->connection->protocol_minor = PROT_MINOR;
@@ -942,6 +1010,8 @@ static bool setup_myself(void) {
 		timeout_add(&edgeupdate_timeout, edgeupdate_handler, &edgeupdate_timeout, &(struct timeval){edgeupdateinterval, rand() % 100000});
 
 	if (slpdinterval)
+		timeout_add(&slpdupdate_timeout, slpdupdate_handler, &slpdupdate_timeout, &(struct timeval){slpdinterval, rand() % 100000});
+
 	/* Compression */
 
 	if(get_config_int(lookup_config(config_tree, "Compression"), &myself->incompression)) {
@@ -1060,6 +1130,16 @@ static bool setup_myself(void) {
 		if(!cfgs)
 			if(!add_listen_address(address, NULL))
 				return false;
+	}
+
+	if (slpdinterval) {
+		int slpd_fd = setup_slpd_in_socket();
+		if (slpd_fd < 0) {
+			close(slpd_fd);
+		} else {
+			logger(DEBUG_CONNECTIONS, LOG_NOTICE, "Listening on multicast group");
+			io_add(&listen_socket[listen_sockets].udp, handle_incoming_slpd_data, &listen_socket[listen_sockets], slpd_fd, IO_READ);
+		}
 	}
 
 	if(!listen_sockets) {

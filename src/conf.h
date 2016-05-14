@@ -25,6 +25,9 @@
 #include "splay_tree.h"
 #include "subnet.h"
 
+#define DEFAULT_SLPD_GROUP "224.0.42.23"
+#define DEFAULT_SLPD_PORT "1655"
+
 typedef struct config_t {
 	char *variable;
 	char *value;

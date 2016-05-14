@@ -23,6 +23,7 @@
 
 #include "splay_tree.h"
 #include "cipher.h"
+#include "conf.h"
 #include "connection.h"
 #include "digest.h"
 #include "event.h"
@@ -81,7 +82,7 @@ typedef struct node_t {
 	splay_tree_t *edge_tree;                /* Edges with this node as one of the endpoints */
 
 	struct connection_t *connection;        /* Connection associated with this node (if a direct connection exists) */
-
+	struct config_t *slpd_address;          /* Address we learned via SLPD */
 	uint32_t sent_seqno;                    /* Sequence number last sent to this node */
 	uint32_t received_seqno;                /* Sequence number last received from this node */
 	uint32_t received;                      /* Total valid packets received from this node */

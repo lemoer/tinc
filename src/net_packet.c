@@ -59,6 +59,7 @@
 
 int keylifetime = 0;
 int edgeupdateinterval = 0;
+int slpdinterval = 0;
 #ifdef HAVE_LZO
 static char lzo_wrkmem[LZO1X_999_MEM_COMPRESS > LZO1X_1_MEM_COMPRESS ? LZO1X_999_MEM_COMPRESS : LZO1X_1_MEM_COMPRESS];
 #endif
@@ -1514,6 +1515,51 @@ skip_harder:
 		send_mtu_info(myself, n, MTU);
 }
 
+static void handle_incoming_slpd_packet(listen_socket_t *ls, void *pkt, sockaddr_t *addr) {
+
+	int mav, miv, port;
+	char nodename[MAXSIZE], fng[MAXSIZE];
+
+	int i = sscanf(pkt, "sLPD %d %d %s %d %s", &mav, &miv, &nodename[0], &port, &fng[0]);
+	if (i != 5) {
+		logger(DEBUG_ALWAYS, LOG_ERR, "cant not parse packet... %d",i);
+		return;
+	}
+
+	if (mav == 0 && miv == 1) {
+
+		logger(DEBUG_TRAFFIC, LOG_ERR, "Got SLPD packet node:%s port:%d %d.%d <%s> from %s", nodename, port, mav, miv, fng, inet_ntoa(addr->in.sin_addr));
+
+		node_t *n = lookup_node(nodename);
+		if (!n) {
+			logger(DEBUG_ALWAYS, LOG_ERR, "unknown node: %s", nodename);
+			return;
+		}
+
+		if (!strncmp(n->name, myself->name, strlen(myself->name))) {
+			logger(DEBUG_SCARY_THINGS, LOG_NOTICE, "Ignore SLPD for myself: %s", nodename);
+			return;
+		}
+
+		config_t *cfg = NULL;
+		if (!n->slpd_address) {
+			cfg = new_config();
+			cfg->variable = xstrdup("Address");
+			cfg->value = xstrdup(inet_ntoa(addr->in.sin_addr));
+			cfg->file = NULL;
+			cfg->line = -1;
+
+			logger(DEBUG_ALWAYS, LOG_ERR, "Discovered %s on %s", nodename, inet_ntoa(addr->in.sin_addr));
+
+			n->slpd_address = cfg;
+			n->status.has_address = true;
+		}
+	} else {
+		logger(DEBUG_ALWAYS, LOG_ERR, "Got SLPD packet with wrong version %d.%d", mav, miv);
+	}
+	return;
+}
+
 void handle_incoming_vpn_data(void *data, int flags) {
 	listen_socket_t *ls = data;
 
@@ -1574,6 +1620,27 @@ void handle_incoming_vpn_data(void *data, int flags) {
 	handle_incoming_vpn_packet(ls, &pkt, &addr);
 #endif
 }
+
+void handle_incoming_slpd_data(void *data, int flags) {
+	listen_socket_t *ls = data;
+
+	void *pkt;
+	sockaddr_t addr = {};
+	socklen_t addrlen = sizeof addr;
+
+	logger(DEBUG_SCARY_THINGS, LOG_INFO, "Receiving LPD packet");
+
+	int len = recvfrom(ls->udp.fd, (void *)&pkt, MAXSIZE, 0, &addr.sa, &addrlen);
+
+	if(len <= 0 || len > MAXSIZE) {
+		if(!sockwouldblock(sockerrno))
+			logger(DEBUG_ALWAYS, LOG_ERR, "Receiving SLPD packet failed: %s", sockstrerror(sockerrno));
+		return;
+	}
+
+	handle_incoming_slpd_packet(ls, &pkt, &addr);
+}
+
 
 void handle_device_data(void *data, int flags) {
 	vpn_packet_t packet;

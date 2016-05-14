@@ -301,6 +301,58 @@ int setup_vpn_in_socket(const sockaddr_t *sa) {
 	return nfd;
 } /* int setup_vpn_in_socket */
 
+
+int setup_slpd_in_socket(void) {
+	int nfd;
+	char *my_slpd_port;
+	char *my_slpd_group;
+	struct sockaddr_in lsock;
+	struct ip_mreq group;
+	struct ip_mreq mreq;
+
+	if(!get_config_string(lookup_config(config_tree, "SLPDPort"), &my_slpd_port))
+		my_slpd_port = xstrdup(DEFAULT_SLPD_PORT);
+
+	if(!get_config_string(lookup_config(config_tree, "SLPDGroup"), &my_slpd_group))
+		my_slpd_group = xstrdup(DEFAULT_SLPD_GROUP);
+
+	nfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+	if(nfd < 0) {
+		logger(DEBUG_ALWAYS, LOG_ERR, "Can not create socket for SLPD %s", sockstrerror(sockerrno));
+		return -1;
+	}
+
+	int reuse = 1;
+	if(setsockopt(nfd, SOL_SOCKET, SO_REUSEADDR, (char *)&reuse, sizeof(reuse)) < 0) {
+		logger(DEBUG_ALWAYS, LOG_ERR, "Can not set SO_REUSEADDR for SLPD %s", sockstrerror(sockerrno));
+		closesocket(nfd);
+		return -1;
+	}
+
+	memset((char *) &lsock, 0, sizeof(lsock));
+	lsock.sin_family = AF_INET;
+	lsock.sin_port = htons(atoi(my_slpd_port));
+	lsock.sin_addr.s_addr = htonl(INADDR_ANY);
+
+	if(bind(nfd, (struct sockaddr*)&lsock, sizeof(lsock)) < 0) {
+		logger(DEBUG_ALWAYS, LOG_ERR, "Can not bind() socket for SLPD %s", sockstrerror(sockerrno));
+		closesocket(nfd);
+		return -1;
+	}
+
+	group.imr_multiaddr.s_addr = inet_addr(my_slpd_group);
+	group.imr_interface.s_addr = htonl(INADDR_ANY);
+	if(setsockopt(nfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&group, sizeof(group)) < 0) {
+		logger(DEBUG_ALWAYS, LOG_ERR, "Can not join group for SLPD %s", sockstrerror(sockerrno));
+		closesocket(nfd);
+		return -1;
+	}
+	logger(DEBUG_STATUS, LOG_INFO, "SLPD socket ready (%d)", nfd);
+
+	return nfd;
+} /* int setup_slpd_in_socket */
+
 static void retry_outgoing_handler(void *data) {
 	setup_outgoing_connection(data);
 }
@@ -618,6 +670,9 @@ void setup_outgoing_connection(outgoing_t *outgoing) {
 		read_host_config(outgoing->config_tree, outgoing->name);
 		outgoing->cfg = lookup_config(outgoing->config_tree, "Address");
 	}
+
+	if (slpdinterval && !outgoing->cfg && n->slpd_address)
+		outgoing->cfg = n->slpd_address;
 
 	if(!outgoing->cfg) {
 		if(n)
