@@ -915,9 +915,6 @@ static bool setup_myself(void) {
 
 	timeout_add(&keyexpire_timeout, keyexpire_handler, &keyexpire_timeout, &(struct timeval){keylifetime, rand() % 100000});
 
-	if (edgeupdateinterval)
-		timeout_add(&edgeupdate_timeout, edgeupdate_handler, &edgeupdate_timeout, &(struct timeval){edgeupdateinterval, rand() % 100000});
-
 	/* Check if we want to use message authentication codes... */
 
 	int maclength = 4;
@@ -941,6 +938,10 @@ static bool setup_myself(void) {
 	free(digest);
 #endif
 
+	if (edgeupdateinterval)
+		timeout_add(&edgeupdate_timeout, edgeupdate_handler, &edgeupdate_timeout, &(struct timeval){edgeupdateinterval, rand() % 100000});
+
+	if (slpdinterval)
 	/* Compression */
 
 	if(get_config_int(lookup_config(config_tree, "Compression"), &myself->incompression)) {
