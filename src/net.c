@@ -217,12 +217,10 @@ static void periodic_handler(void *data) {
 				count++;
 			}
 
-			if(!count) {
-				logger(DEBUG_ALWAYS, LOG_INFO, "No more nodes available for autoconnect!");
+			if(!count)
 				goto end;
-			}
 
-			logger(DEBUG_ALWAYS, LOG_INFO, "%d active connections - autoconnecting to one of %d available nodes",
+			logger(DEBUG_STATUS, LOG_INFO, "%d active connections - autoconnecting to one of %d available nodes",
 						nc, count);
 
 			int r = rand() % count;
