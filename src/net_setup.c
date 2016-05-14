@@ -357,7 +357,7 @@ void send_slpd_broadcast(void) {
 		close(fd);
 
 		/* display result */
-		logger(DEBUG_ALWAYS, LOG_ERR, "%s has the ip: %s\n", iface,
+		logger(DEBUG_SCARY_THINGS, LOG_ERR, "%s has the ip: %s\n", iface,
 					 inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
 
 		lif.s_addr = inet_addr(inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
