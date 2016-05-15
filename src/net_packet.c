@@ -1630,7 +1630,7 @@ void handle_incoming_slpd_data(void *data, int flags) {
 
 	logger(DEBUG_SCARY_THINGS, LOG_INFO, "Receiving SLPD packet");
 
-	int len = recvfrom(ls->udp.fd, (void *)&pkt, MAXSIZE, 0, &addr.sa, &addrlen);
+	size_t len = recvfrom(ls->udp.fd, (void *)&pkt, MAXSIZE, 0, &addr.sa, &addrlen);
 
 	if(len <= 0 || len > MAXSIZE) {
 		if(!sockwouldblock(sockerrno))
