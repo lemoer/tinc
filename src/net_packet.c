@@ -1624,7 +1624,7 @@ void handle_incoming_vpn_data(void *data, int flags) {
 void handle_incoming_slpd_data(void *data, int flags) {
 	listen_socket_t *ls = data;
 
-	void *pkt;
+	char pkt[MAXSIZE];
 	sockaddr_t addr = {};
 	socklen_t addrlen = sizeof addr;
 
