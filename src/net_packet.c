@@ -1628,7 +1628,7 @@ void handle_incoming_slpd_data(void *data, int flags) {
 	sockaddr_t addr = {};
 	socklen_t addrlen = sizeof addr;
 
-	logger(DEBUG_SCARY_THINGS, LOG_INFO, "Receiving LPD packet");
+	logger(DEBUG_SCARY_THINGS, LOG_INFO, "Receiving SLPD packet");
 
 	int len = recvfrom(ls->udp.fd, (void *)&pkt, MAXSIZE, 0, &addr.sa, &addrlen);
 

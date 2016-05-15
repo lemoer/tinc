@@ -323,6 +323,23 @@ int setup_slpd_in_socket(void) {
 		return -1;
 	}
 
+#ifdef FD_CLOEXEC
+	fcntl(nfd, F_SETFD, FD_CLOEXEC);
+#endif
+
+#ifdef O_NONBLOCK
+	{
+		int flags = fcntl(nfd, F_GETFL);
+
+		if(fcntl(nfd, F_SETFL, flags | O_NONBLOCK) < 0) {
+			closesocket(nfd);
+			logger(DEBUG_ALWAYS, LOG_ERR, "System call `%s' failed: %s", "fcntl",
+				   strerror(errno));
+			return -1;
+		}
+	}
+#endif
+
 	int reuse = 1;
 	if(setsockopt(nfd, SOL_SOCKET, SO_REUSEADDR, (char *)&reuse, sizeof(reuse)) < 0) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "Can not set SO_REUSEADDR for SLPD %s", sockstrerror(sockerrno));
@@ -343,11 +360,13 @@ int setup_slpd_in_socket(void) {
 
 	group.imr_multiaddr.s_addr = inet_addr(my_slpd_group);
 	group.imr_interface.s_addr = htonl(INADDR_ANY);
+
 	if(setsockopt(nfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&group, sizeof(group)) < 0) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "Can not join group for SLPD %s", sockstrerror(sockerrno));
 		closesocket(nfd);
 		return -1;
 	}
+
 	logger(DEBUG_STATUS, LOG_INFO, "SLPD socket ready (%d)", nfd);
 
 	return nfd;
