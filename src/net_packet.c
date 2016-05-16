@@ -1515,20 +1515,23 @@ skip_harder:
 		send_mtu_info(myself, n, MTU);
 }
 
-static void handle_incoming_slpd_packet(listen_socket_t *ls, void *pkt, sockaddr_t *addr) {
+static void handle_incoming_slpd_packet(listen_socket_t *ls, void *pkt, struct sockaddr_in6 *addr) {
 
 	int mav, miv, port;
 	char nodename[MAXSIZE], fng[MAXSIZE];
 
+	char addrstr[INET6_ADDRSTRLEN];
+	inet_ntop(AF_INET6, &addr->sin6_addr, addrstr, sizeof(addrstr));
+
 	int i = sscanf(pkt, "sLPD %d %d %s %d %s", &mav, &miv, &nodename[0], &port, &fng[0]);
 	if (i != 5) {
-		logger(DEBUG_ALWAYS, LOG_ERR, "cant not parse packet... %d",i);
+		logger(DEBUG_ALWAYS, LOG_ERR, "cant not parse packet... %d from %s", i, addrstr);
 		return;
 	}
 
 	if (mav == 0 && miv == 1) {
 
-		logger(DEBUG_TRAFFIC, LOG_ERR, "Got SLPD packet node:%s port:%d %d.%d <%s> from %s", nodename, port, mav, miv, fng, inet_ntoa(addr->in.sin_addr));
+		logger(DEBUG_TRAFFIC, LOG_ERR, "Got SLPD packet node:%s port:%d %d.%d <%s> from %s", nodename, port, mav, miv, fng, addrstr);
 
 		node_t *n = lookup_node(nodename);
 		if (!n) {
@@ -1543,14 +1546,19 @@ static void handle_incoming_slpd_packet(listen_socket_t *ls, void *pkt, sockaddr
 
 		config_t *cfg = NULL;
 		if (!n->slpd_address) {
+			char iface_name[255];
+			char fullhost[255];
+
+			if_indextoname(addr->sin6_scope_id, &iface_name);
+
 			cfg = new_config();
 			cfg->variable = xstrdup("Address");
-			cfg->value = xstrdup(inet_ntoa(addr->in.sin_addr));
+			snprintf(&fullhost, 254, "%s%%%s", addrstr, iface_name);
+			cfg->value = xstrdup(fullhost);
 			cfg->file = NULL;
 			cfg->line = -1;
 
-			logger(DEBUG_ALWAYS, LOG_ERR, "Discovered %s on %s", nodename, inet_ntoa(addr->in.sin_addr));
-
+			logger(DEBUG_ALWAYS, LOG_ERR, "Discovered %s on %s", nodename , fullhost);
 			n->slpd_address = cfg;
 			n->status.has_address = true;
 		}
@@ -1625,12 +1633,10 @@ void handle_incoming_slpd_data(void *data, int flags) {
 	listen_socket_t *ls = data;
 
 	char pkt[MAXSIZE];
-	sockaddr_t addr = {};
-	socklen_t addrlen = sizeof addr;
+	struct sockaddr_in6 addr;
+	socklen_t addrlen = sizeof(addr);
 
-	logger(DEBUG_SCARY_THINGS, LOG_INFO, "Receiving SLPD packet");
-
-	size_t len = recvfrom(ls->udp.fd, (void *)&pkt, MAXSIZE, 0, &addr.sa, &addrlen);
+	size_t len = recvfrom(ls->udp.fd, pkt, MAXSIZE, 0, (struct sockaddr *)&addr, &addrlen);
 
 	if(len <= 0 || len > MAXSIZE) {
 		if(!sockwouldblock(sockerrno))

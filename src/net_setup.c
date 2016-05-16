@@ -319,7 +319,15 @@ static timeout_t edgeupdate_timeout;
 static timeout_t slpdupdate_timeout;
 
 static void slpdupdate_handler(void *data) {
-	send_slpd_broadcast();
+	config_t *c_iface;
+	c_iface = lookup_config(config_tree, "SLPDInterface");
+
+	while(c_iface) {
+		logger(DEBUG_STATUS, LOG_NOTICE, "Sending SLPD out on %s", c_iface->value);
+		send_slpd_broadcast(c_iface->value);
+		c_iface = lookup_config_next(config_tree, c_iface);
+	}
+
 	timeout_set(data, &(struct timeval){slpdinterval + (rand() % 10), rand() % 100000});
 }
 
@@ -333,50 +341,72 @@ static void edgeupdate_handler(void *data) {
 	timeout_set(data, &(struct timeval){edgeupdateinterval + (rand() % 10), rand() % 100000});
 }
 
-void send_slpd_broadcast(void) {
+void send_slpd_broadcast(char *iface) {
 	int sd;
-	struct sockaddr_in address;
-	char slpd_msg[MAXSIZE] = "";
-	char *iface;
-	struct in_addr lif;
-	struct ifreq ifr;
-	int fd;
+	struct addrinfo *mcast_addr;
+	struct addrinfo hints;
+	sockaddr_t r;
 
-	sd = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (sd < 0) {
+	char slpd_msg[MAXSIZE] = "";
+
+	/* Check if interface is up */
+	struct ifreq ifr;
+	sd = socket(PF_INET6, SOCK_DGRAM, IPPROTO_IP);
+	memset(&ifr, 0, sizeof(ifr));
+	strcpy(ifr.ifr_name, iface);
+	if (ioctl(sd, SIOCGIFFLAGS, &ifr) < 0) {
+		logger(DEBUG_ALWAYS, LOG_INFO, "ioctl() on %s error: [%s:%d]", iface, strerror(errno), errno);
+	}
+	close(sd);
+	// Requested interface is down
+	if (!(ifr.ifr_flags & IFF_UP) || !(ifr.ifr_flags & IFF_RUNNING))
+		return;
+
+	bzero(&hints, sizeof(hints));
+	hints.ai_family   = AF_INET6;
+	hints.ai_socktype = SOCK_DGRAM;
+	hints.ai_flags = AI_ADDRCONFIG | AI_CANONNAME;
+
+	int status;
+	if ((status = getaddrinfo(my_slpd_group, my_slpd_port, &hints, &mcast_addr)) != 0 ) {
+		logger(DEBUG_ALWAYS, LOG_INFO, "getaddrinfo() error: [%s:%d]", strerror(errno), errno);
+		return;
+	}
+
+	if ((sd = socket(mcast_addr->ai_family, mcast_addr->ai_socktype, 0)) < 0 ) {
 		logger(DEBUG_ALWAYS, LOG_INFO, "socket() error: [%s:%d]", strerror(errno), errno);
+		freeaddrinfo(&mcast_addr);
+		return;
+	}
+
+	int on = 1;
+	if (setsockopt(sd, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&on, sizeof(on)) < 0) {
+		logger(DEBUG_ALWAYS, LOG_ERR, "setsockopt() IPV6_V6ONLY failed [%s:%d]", strerror(errno), errno);
 		return;
 	}
 
 	/* Send SLPD only on this Interface */
-	if(get_config_string (lookup_config (config_tree, "SLPDInterface"), &iface)) {
-		fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-		ifr.ifr_addr.sa_family = AF_INET;
-		strncpy(ifr.ifr_name, iface, IFNAMSIZ-1);
-		ioctl(fd, SIOCGIFADDR, &ifr);
-		close(fd);
 
-		/* display result */
-		logger(DEBUG_SCARY_THINGS, LOG_ERR, "%s has the ip: %s\n", iface,
-					 inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
-
-		lif.s_addr = inet_addr(inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
-		if(setsockopt(sd, IPPROTO_IP, IP_MULTICAST_IF, (char *)&lif, sizeof(lif)) < 0) {
-			logger(DEBUG_ALWAYS, LOG_ERR, "can not bind multicast to %s\n", iface);
-			return;
-		}
+	unsigned int ifindex;
+	ifindex = if_nametoindex(iface);
+	if(setsockopt (sd, IPPROTO_IPV6, IPV6_MULTICAST_IF, &ifindex, sizeof(ifindex)) != 0) {
+		logger(DEBUG_ALWAYS, LOG_ERR, "setsockopt() IPV6_MULTICAST_IF failed [%s:%d]", strerror(errno), errno);
+		freeaddrinfo(&mcast_addr);
+		return;
 	}
 
-	memset (&address, 0, sizeof (address));
-	address.sin_family = AF_INET;
-	address.sin_addr.s_addr = inet_addr (DEFAULT_SLPD_GROUP);
-	address.sin_port = htons(atoi(my_slpd_port));
+	unsigned int reuse = 1;
+	if(setsockopt (sd, IPPROTO_IPV6, SO_REUSEADDR, (char*)&reuse, sizeof(reuse)) != 0) {
+		logger(DEBUG_ALWAYS, LOG_ERR, "setsockopt() SO_REUSEADDR failed: [%s:%d]", strerror(errno), errno);
+		freeaddrinfo(&mcast_addr);
+		return;
+	}
 
 	snprintf(slpd_msg, MAXSIZE, "sLPD 0 1 %s %d none ", myname, atoi(myport));
 	slpd_msg[MAXSIZE-1] = '\00';
 	//ecdsa_sign(myself->sptps.mykey, msg, strlen(msg), sig);
 
-	if (sendto( sd, slpd_msg, strlen(slpd_msg), 0, (struct sockaddr *) &address, sizeof (address)) < 0) {
+	if (sendto(sd, slpd_msg, strlen(slpd_msg), 0, mcast_addr->ai_addr, mcast_addr->ai_addrlen) != strlen(slpd_msg) ) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "SLPD send() error: [%s:%d]", strerror(errno), errno);
 	}
 	close(sd);
@@ -1136,6 +1166,7 @@ static bool setup_myself(void) {
 		int slpd_fd = setup_slpd_in_socket();
 		if (slpd_fd < 0) {
 			close(slpd_fd);
+			logger(DEBUG_CONNECTIONS, LOG_NOTICE, "Listening on multicast group failed");
 		} else {
 			logger(DEBUG_CONNECTIONS, LOG_NOTICE, "Listening on multicast group");
 			io_add(&listen_socket[listen_sockets].udp, handle_incoming_slpd_data, &listen_socket[listen_sockets], slpd_fd, IO_READ);

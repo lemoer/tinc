@@ -302,13 +302,17 @@ int setup_vpn_in_socket(const sockaddr_t *sa) {
 } /* int setup_vpn_in_socket */
 
 
-int setup_slpd_in_socket(void) {
+int setup_slpd_in_socket() {
 	int nfd;
 	char *my_slpd_port;
 	char *my_slpd_group;
-	struct sockaddr_in lsock;
-	struct ip_mreq group;
-	struct ip_mreq mreq;
+
+	struct addrinfo *res;
+	struct addrinfo hints;
+	struct ipv6_mreq group;
+
+	logger(DEBUG_ALWAYS, LOG_ERR, "Prepare SLPD mutlicast socket");
+
 
 	if(!get_config_string(lookup_config(config_tree, "SLPDPort"), &my_slpd_port))
 		my_slpd_port = xstrdup(DEFAULT_SLPD_PORT);
@@ -316,7 +320,19 @@ int setup_slpd_in_socket(void) {
 	if(!get_config_string(lookup_config(config_tree, "SLPDGroup"), &my_slpd_group))
 		my_slpd_group = xstrdup(DEFAULT_SLPD_GROUP);
 
-	nfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	bzero(&hints, sizeof(hints));
+	hints.ai_family   = AF_INET6;
+	hints.ai_socktype = SOCK_DGRAM;
+	hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG;
+	//hints.ai_flags = AI_PASSIVE;
+
+	int status;
+	if ((status = getaddrinfo(NULL,  my_slpd_port, &hints, &res)) != 0 ) {
+		logger(DEBUG_ALWAYS, LOG_INFO, "getaddrinfo() error: [%s:%d]", strerror(errno), errno);
+		return -1;
+	}
+
+	nfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 
 	if(nfd < 0) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "Can not create socket for SLPD %s", sockstrerror(sockerrno));
@@ -347,24 +363,29 @@ int setup_slpd_in_socket(void) {
 		return -1;
 	}
 
-	memset((char *) &lsock, 0, sizeof(lsock));
-	lsock.sin_family = AF_INET;
-	lsock.sin_port = htons(atoi(my_slpd_port));
-	lsock.sin_addr.s_addr = htonl(INADDR_ANY);
-
-	if(bind(nfd, (struct sockaddr*)&lsock, sizeof(lsock)) < 0) {
+	if (bind(nfd, res->ai_addr, res->ai_addrlen) < 0) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "Can not bind() socket for SLPD %s", sockstrerror(sockerrno));
 		closesocket(nfd);
 		return -1;
 	}
 
-	group.imr_multiaddr.s_addr = inet_addr(my_slpd_group);
-	group.imr_interface.s_addr = htonl(INADDR_ANY);
+	config_t *c_iface;
+	c_iface = lookup_config(config_tree, "SLPDInterface");
 
-	if(setsockopt(nfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&group, sizeof(group)) < 0) {
-		logger(DEBUG_ALWAYS, LOG_ERR, "Can not join group for SLPD %s", sockstrerror(sockerrno));
-		closesocket(nfd);
-		return -1;
+	while(c_iface) {
+
+		struct sockaddr_in6 group_addr;
+		inet_pton(AF_INET6, my_slpd_group, &group_addr.sin6_addr);
+		group.ipv6mr_multiaddr = group_addr.sin6_addr;
+		group.ipv6mr_interface = if_nametoindex(c_iface->value);
+
+		if (setsockopt(nfd, IPPROTO_IPV6, IPV6_JOIN_GROUP, &group, sizeof(group)) < 0) {
+			logger(DEBUG_ALWAYS, LOG_ERR, "Can not join group for SLPD %s", sockstrerror(sockerrno));
+			closesocket(nfd);
+			return -1;
+		}
+		logger(DEBUG_STATUS, LOG_INFO, "SLPD multicast group joined on %s ready (%d)", c_iface->value);
+		c_iface = lookup_config_next(config_tree, c_iface);
 	}
 
 	logger(DEBUG_STATUS, LOG_INFO, "SLPD socket ready (%d)", nfd);
