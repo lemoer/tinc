@@ -402,11 +402,27 @@ void send_slpd_broadcast(char *iface) {
 		return;
 	}
 
-	snprintf(slpd_msg, MAXSIZE, "sLPD 0 1 %s %d none ", myname, atoi(myport));
-	slpd_msg[MAXSIZE-1] = '\00';
-	//ecdsa_sign(myself->sptps.mykey, msg, strlen(msg), sig);
+	snprintf(slpd_msg, MAXSIZE, "sLPD 0 2 %s %d", myname, atoi(myport));
 
-	if (sendto(sd, slpd_msg, strlen(slpd_msg), 0, mcast_addr->ai_addr, mcast_addr->ai_addrlen) != strlen(slpd_msg) ) {
+	char signature[87];
+	char b64sig[255];
+	char pkt[MAXSIZE];
+	int public_key = node_read_ecdsa_public_key(myself);
+	char *private_key;
+
+	private_key = read_ecdsa_private_key();
+
+	slpd_msg[MAXSIZE-1] = '\00';
+	ecdsa_sign(myself->connection->ecdsa, slpd_msg, strlen(slpd_msg), &signature);
+	if (b64encode(signature, &b64sig, 64) != 86) {
+		logger(DEBUG_ALWAYS, LOG_ERR, "b64encode() failed!");
+		return;
+	}
+
+	int l = snprintf(&pkt, strlen(slpd_msg) + strlen(b64sig) + 2, "%s %s", slpd_msg, b64sig);
+	pkt[l] = '\00';
+
+	if (sendto(sd, pkt, strlen(pkt), 0, mcast_addr->ai_addr, mcast_addr->ai_addrlen) != strlen(pkt) ) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "SLPD send() error: [%s:%d]", strerror(errno), errno);
 	}
 	close(sd);

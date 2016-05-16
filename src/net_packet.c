@@ -1529,7 +1529,7 @@ static void handle_incoming_slpd_packet(listen_socket_t *ls, void *pkt, struct s
 		return;
 	}
 
-	if (mav == 0 && miv == 1) {
+	if (mav == 0 && miv <= 2) {
 
 		logger(DEBUG_TRAFFIC, LOG_ERR, "Got SLPD packet node:%s port:%d %d.%d <%s> from %s", nodename, port, mav, miv, fng, addrstr);
 
@@ -1537,6 +1537,22 @@ static void handle_incoming_slpd_packet(listen_socket_t *ls, void *pkt, struct s
 		if (!n) {
 			logger(DEBUG_ALWAYS, LOG_ERR, "unknown node: %s", nodename);
 			return;
+		}
+
+		node_read_ecdsa_public_key(n);
+
+		char sig[64];
+		int v;
+		size_t nlen = strlen(pkt);
+		if (miv >= 2) {
+			if (b64decode(fng, &sig, 86) != 64) {
+				logger(DEBUG_ALWAYS, LOG_ERR, "b64decode() failed!");
+				return;
+			}
+			if (!ecdsa_verify(n->ecdsa, pkt, nlen-86-1, sig)) {
+				logger(DEBUG_ALWAYS, LOG_ERR, "Signature verification for SLPD from <%s> failed!", addrstr);
+				return;
+			}
 		}
 
 		if (!strncmp(n->name, myself->name, strlen(myself->name))) {
