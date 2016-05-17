@@ -407,11 +407,16 @@ void send_slpd_broadcast(char *iface) {
 	char signature[87];
 	char b64sig[255];
 	char pkt[MAXSIZE];
-	int public_key = node_read_ecdsa_public_key(myself);
-	char *private_key;
 
-	private_key = read_ecdsa_private_key();
+	if (!node_read_ecdsa_public_key(myself)) {
+		logger(DEBUG_ALWAYS, LOG_ERR, "Can not load public key for SLPD");
+		return;
+	}
 
+	if (!read_ecdsa_private_key()) {
+		logger(DEBUG_ALWAYS, LOG_ERR, "Can not load private key for SLPD");
+		return;
+	}
 	slpd_msg[MAXSIZE-1] = '\00';
 	ecdsa_sign(myself->connection->ecdsa, slpd_msg, strlen(slpd_msg), &signature);
 	if (b64encode(signature, &b64sig, 64) != 86) {
@@ -425,6 +430,7 @@ void send_slpd_broadcast(char *iface) {
 	if (sendto(sd, pkt, strlen(pkt), 0, mcast_addr->ai_addr, mcast_addr->ai_addrlen) != strlen(pkt) ) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "SLPD send() error: [%s:%d]", strerror(errno), errno);
 	}
+
 	close(sd);
 	return;
 }

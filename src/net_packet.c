@@ -1515,7 +1515,7 @@ skip_harder:
 		send_mtu_info(myself, n, MTU);
 }
 
-static void handle_incoming_slpd_packet(listen_socket_t *ls, void *pkt, struct sockaddr_in6 *addr) {
+static void handle_incoming_slpd_packet(listen_socket_t *ls, void *pkt, struct sockaddr_in6 *addr, size_t datalen) {
 
 	int mav, miv, port;
 	char nodename[MAXSIZE], fng[MAXSIZE];
@@ -1523,15 +1523,16 @@ static void handle_incoming_slpd_packet(listen_socket_t *ls, void *pkt, struct s
 	char addrstr[INET6_ADDRSTRLEN];
 	inet_ntop(AF_INET6, &addr->sin6_addr, addrstr, sizeof(addrstr));
 
-	int i = sscanf(pkt, "sLPD %d %d %s %d %s", &mav, &miv, &nodename[0], &port, &fng[0]);
+	int i = sscanf(pkt, "sLPD %d %d %s %d %86s", &mav, &miv, &nodename[0], &port, &fng[0]);
 	if (i != 5) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "cant not parse packet... %d from %s", i, addrstr);
 		return;
 	}
 
-	if (mav == 0 && miv <= 2) {
+	fng[86] = '\00';
 
-		logger(DEBUG_TRAFFIC, LOG_ERR, "Got SLPD packet node:%s port:%d %d.%d <%s> from %s", nodename, port, mav, miv, fng, addrstr);
+	if (mav == 0 && miv <= 2) {
+		logger(DEBUG_TRAFFIC, LOG_ERR, "Got SLPD packet node:%s port:%d %d.%d <%s> from %s (len: %d)", nodename, port, mav, miv, fng, addrstr, datalen);
 
 		node_t *n = lookup_node(nodename);
 		if (!n) {
@@ -1539,17 +1540,21 @@ static void handle_incoming_slpd_packet(listen_socket_t *ls, void *pkt, struct s
 			return;
 		}
 
-		node_read_ecdsa_public_key(n);
+		if (!n->ecdsa)
+			node_read_ecdsa_public_key(n);
 
 		char sig[64];
-		int v;
-		size_t nlen = strlen(pkt);
+		char b64sig[255];
+		memset(&sig, 0x0, 64);
+		memset(&b64sig, 0x0, 255);
+
 		if (miv >= 2) {
 			if (b64decode(fng, &sig, 86) != 64) {
 				logger(DEBUG_ALWAYS, LOG_ERR, "b64decode() failed!");
 				return;
 			}
-			if (!ecdsa_verify(n->ecdsa, pkt, nlen-86-1, sig)) {
+
+			if (!ecdsa_verify(n->ecdsa, pkt, datalen-86-1, sig)) {
 				logger(DEBUG_ALWAYS, LOG_ERR, "Signature verification for SLPD from <%s> failed!", addrstr);
 				return;
 			}
@@ -1562,8 +1567,8 @@ static void handle_incoming_slpd_packet(listen_socket_t *ls, void *pkt, struct s
 
 		config_t *cfg = NULL;
 		if (!n->slpd_address) {
-			char iface_name[255];
-			char fullhost[255];
+			char iface_name[255] = { 0 };
+			char fullhost[255] = { 0 };
 
 			if_indextoname(addr->sin6_scope_id, &iface_name);
 
@@ -1660,7 +1665,7 @@ void handle_incoming_slpd_data(void *data, int flags) {
 		return;
 	}
 
-	handle_incoming_slpd_packet(ls, &pkt, &addr);
+	handle_incoming_slpd_packet(ls, &pkt, &addr, len);
 }
 
 
