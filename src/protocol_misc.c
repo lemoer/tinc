@@ -126,6 +126,12 @@ bool pong_h(connection_t *c, const char *request) {
 	int current_rtt = 0;
 	int tv_sec, tv_usec, ret;
 	struct timeval _now;
+
+	if (!c->status.pinged) {
+		logger(DEBUG_ALWAYS, LOG_WARNING, "received pong without ping");
+		return false;
+	}
+
 	c->status.pinged = false;
 
 	ret = sscanf(request, "%*d %d %d", &tv_sec, &tv_usec);
