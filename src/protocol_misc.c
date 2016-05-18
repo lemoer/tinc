@@ -150,12 +150,11 @@ bool pong_h(connection_t *c, const char *request) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "bogus pong received from %s (%s)", c->name, c->hostname);
 		return false;
 	}
-	/* RTT should be in ms */
-	current_rtt = (_now.tv_sec - tv_sec)*1000;
-	/* Compute diff between usec */
-	current_rtt += _now.tv_usec >= tv_usec ? _now.tv_usec - tv_usec : tv_usec - _now.tv_usec;
 
-	current_rtt = current_rtt/1000;
+	/* current_rtt should be in ms */
+	current_rtt += (_now.tv_sec - tv_sec) * 1000;
+	/* Compute diff between usec */
+	current_rtt += (_now.tv_usec - tv_usec) / 1000;
 
 	if (c->edge->avg_rtt == 0)
 		c->edge->avg_rtt = current_rtt;
