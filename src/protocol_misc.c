@@ -123,8 +123,9 @@ bool send_pong(connection_t *c) {
 }
 
 bool pong_h(connection_t *c, const char *request) {
-	int current_rtt = 0;
-	int tv_sec, tv_usec, ret;
+	int ret;
+	long current_rtt = 0;
+	long tv_sec, tv_usec;
 	struct timeval _now;
 
 	if (!c->status.pinged) {
@@ -134,7 +135,7 @@ bool pong_h(connection_t *c, const char *request) {
 
 	c->status.pinged = false;
 
-	ret = sscanf(request, "%*d %d %d", &tv_sec, &tv_usec);
+	ret = sscanf(request, "%*d %ld %ld", &tv_sec, &tv_usec);
 	gettimeofday(&_now, NULL);
 
 	if (ret != 2) {
